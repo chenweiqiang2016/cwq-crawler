@@ -1,0 +1,12 @@
+GET / HTTP/1.1
+Host: www.zaful.com
+User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64; rv:38.0) Gecko/20100101 Firefox/38.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3
+Accept-Encoding: gzip, deflate
+Cookie: bizhong=USD; isloginInfo=0; _ga=GA1.2.1149202312.1436345814; ZA_SESSIONID=e85p8lmkimqoa556rn8c7ns275; cookie_lang=eng; isNewUser=1; _gat=1
+Connection: keep-alive
+If-Modified-Since: Wed, 08 Jul 2015 00:58:02 GMT
+If-None-Match: "4270002-9e06-51a52a1751a80"
+Cache-Control: max-age=0
+
