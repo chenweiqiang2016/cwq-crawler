@@ -1,6 +1,15 @@
 # -*- coding: utf-8 -*-
 
 import re
+import ConfigParser
+
+def read_config(filename):
+    cf = ConfigParser.ConfigParser()
+    cf.read(filename)
+    return cf
+
+def read_headers(filename):
+    return {}
 
 def extractNum(strText):
     '''仅仅用于对一个数字有关的字符串进行匹配, 多个数字的提取不适用
@@ -15,7 +24,6 @@ def extractNum(strText):
         else:
             return int(result)
     return 0
-        
 
 if __name__ == '__main__':
     print extractNum('cwq7. 23')
