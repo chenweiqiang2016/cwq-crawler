@@ -20,6 +20,14 @@ class CategoryInfo:
 class ProductInfo:
     pass
 
+class FetchTask:
+    def __init__(self, **args):
+        self.url = args['url']
+        self.headers = args['headers']
+    
+    def toJson(self):
+        pass
+
 class Fetch:
     def fetch(self, task):
         h = httplib2.Http()
@@ -32,6 +40,12 @@ class Fetch:
 class Parser:
     def parseCategories(self, homepage_content):
         pass
+    
+    def parseProductsByCategory(self, category_page_content):
+        pass
+    
+    def needProductDetails(self):
+        return False #默认是不抓详情页的
 
 
 class Crawler:
@@ -40,7 +54,40 @@ class Crawler:
         self.parser = parser
     
     def crawl(self):
-        pass
+        categoryList = self.getCategoryList()
+        failedCategoryList = self.crawlCategoryList(categoryList)
+        if failedCategoryList:
+            finalFailedCategoryList = self.crawlCategoryList(failedCategoryList)
+        
+    
+    def getCategoryList(self):
+        homepage_content = self.fetchCategoryPageContent(self.merchant.crawlEntryUrl)
+        categoryList = self.parse.parseCategories(homepage_content)
+        return categoryList
+    
+    def crawlCategoryList(self, categoryList):
+        failedCategoryList = []
+        for i, category_info in enumerate(categoryList):
+            try:
+                self.crawlProducts(category_info)
+            except:
+                failedCategoryList.append(category_info)
+        return failedCategoryList
+                
+    
+    def crawlProducts(self, category_info):
+        cur_url = category_info.url
+        while True:
+            category_page_content =self.fetchCategoryPageContent(cur_url)
+            productList  = self.parser.parseProductsByCategory(category_page_content)
+            for product in productList:
+                pass
+
+    def fetchCategoryPageContent(self, furl):
+        return ""
+    
+    def fetchProductPageContent(self, furl):
+        return ""
         
 
 def crawl(merchantName):
@@ -84,4 +131,3 @@ if __name__ == '__main__':
         lock.release()
         
     
-

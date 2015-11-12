@@ -1,0 +1,9 @@
+GET / HTTP/1.1
+Host: www.wayfair.com
+User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3
+Accept-Encoding: gzip, deflate
+Cookie: SSID=CADR5x0cAAgAAAAztANWxmjAATO0A1YGAAAAAAAAAAAAK_IJVgBpKnsFAAPySwAAnPAIVgQAKgUAA2RKAACc8AhWBAB3BQAAcQUAAA; SSRT=zf4JVgIDAQ; SSPV=azYAAAAAACQAAAAAAAAAAAAAABAAAAAAAAA; CSNPersist=page_of_visit=34&email_captured=&modal_closed=1&latestRefid=DTR1; CSN=g_zip=67346&PRVW=MXMT1124%7CKEG1034%7CFBR1202%7CEHF1186%7CPGS2350%7CKOH12638%7CCUI1788%7CMLT2076%7CLEC2691%7CZOJ1029; CSNUtId=ac101911-5603-b433-3a53-1a94b2376002; WFDC=BO; _br_uid_2=uid%3D6448962350839%3Av%3D11.7%3Ats%3D1443083325651%3Ahc%3D37; _ga=GA1.2.1179783149.1443083327; __cmbDomTm=0; OAID=08ae5f1b947523845f3c410eb22171fc; __cmbU=ABJeb1-ZI4hYEhGq7QXp2RDQRkp-61cOyvEH7htJxCKQb0c-0gQ8mlxpbLDPhkdgDNJ_rNUjh_JKe_RXlYOIa7vvm9K9BGQa6w; __cmbTpvTm=1677; SSSC=27.G6197995643357653190.6|1322.19044:1403.19442; WfTracking=NAN_PID=NULL; wfgelfs=db_class=0&superbrowse_displaying_solr_data=0&beacon_debug_logging=0; WFSID=f038fdd44al6eth8ucqt86e2o1; serverUAInfo=%7B%22browser%22%3A%22Mozilla+Firefox%22%2C%22browserVersion%22%3A40%2C%22OS%22%3A%22Windows%22%2C%22OSVersion%22%3A%227%22%2C%22isMobile%22%3Afalse%2C%22isTablet%22%3Afalse%7D; CSNBrief=SLoc%3Dbo3; featureDetect={"isTouch":false,"hasMQ":true,"deviceWidth":1440,"deviceHeight":306,"devicePixelRatio":1}; OX_plg=swf|pdf|wmp|shk|pm; FirstInSession=1; SSOE=2874554v3:3835537v2; vid=ac101911-5609-f22b-2bae-6b00ee3bfa02; dtr=1; _gat_a=1; _gat_b=1; _gat_dcbo=1
+Connection: keep-alive
+

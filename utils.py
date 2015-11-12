@@ -25,6 +25,20 @@ def extractNum(strText):
             return int(result)
     return 0
 
+def load_http_headers(filename):
+    headers = {}
+    fr = open(filename, 'r')
+    while True:
+        line = fr.readline().strip()
+        if not line:
+            break
+        fields = line.split(':')
+        if len(fields) != 2:
+            print 'Invalid line: %s' %line
+        headers[fields[0].strip()] = fields[1].strip()
+    return headers
+    
+
 if __name__ == '__main__':
     print extractNum('cwq7. 23')
     print extractNum('9,999')
