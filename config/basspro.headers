@@ -1,0 +1,10 @@
+GET / HTTP/1.1
+Host: www.basspro.com
+User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64; rv:42.0) Gecko/20100101 Firefox/42.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3
+Accept-Encoding: gzip, deflate
+Cookie: IpState=BJ; IpZipCode=; IpGeo=Country-CN_Region-State-BJ_City-BEIJING_Zip-_DMA-_MSA-_PMSA-; X-Akamai-FEO-Browser-State=RV; JSESSIONID=0000tSEx_TqQ-QfFAcOMGNW8DjD:19367sbpe; WC_PERSISTENT=LocFlEb7C2lmmzn7XVqYx1gw81o%3D%0A%3B2015-11-12+02%3A26%3A59.61_1447316819610-45922_0; BPSGUID=617276B6-4A58-0D7A-5C04-CBCB3842662E; BPSRRUID=1000000000000; mt.v=2.1456527848.1447317144431; s_cc=true; s_fid=493C2360E50F71C8-30DA3BA89B80926D; s_cpc=0; cmgvo=Typed%2FBookmarkedTyped%2FBookmarkedundefined; s_ev41=%5B%5B%27Typed%2FBookmarked%27%2C%271447317145247%27%5D%5D; s_ev42=%5B%5B%27Typed%2FBookmarked%253A%2520Homepage%27%2C%271447317145248%27%5D%5D; productnum=2; s_nr=1447320533082-Repeat; s_sq=%5B%5BB%5D%5D; fsr.s=%7B%22v2%22%3A-2%2C%22v1%22%3A1%2C%22rid%22%3A%22d036702-53146537-bc39-4a9f-2a610%22%2C%22cp%22%3A%7B%22new_checkout_url%22%3A%22N%22%7D%2C%22to%22%3A5%2C%22c%22%3A%22http%3A%2F%2Fwww.basspro.com%2F%22%2C%22pv%22%3A2%2C%22lc%22%3A%7B%22d4%22%3A%7B%22v%22%3A2%2C%22s%22%3Afalse%7D%7D%2C%22cd%22%3A4%2C%22f%22%3A1447317307933%7D; rr_rcs=eF4NwbkNgDAQBMDEEaUgrXTP3hl3QB_GlgjIgPphppSn77aNnEMIY00wW0O4BlyCNp09oi3Xe5_Hmgklq5uYxA9aIR818A_d; s_vi=[CS]v1|2B2226AE051D3BAC-4000012AC001C91D[CE]; s_stv=non-search
+Connection: keep-alive
+Cache-Control: max-age=0
+

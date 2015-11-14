@@ -1,0 +1,10 @@
+GET / HTTP/1.1
+Host: www.houzz.com
+User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64; rv:42.0) Gecko/20100101 Firefox/42.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3
+Accept-Encoding: gzip, deflate
+Cookie: v=1447378634_877144e7-9ba0-486d-8c7c-38ac7a788a44_a7258e937d78d92fe237ccad3b14541d; fstest=8; __qca=P0-1656257013-1447378977853; __utma=252751504.1284080374.1447378978.1447378978.1447482691.2; __utmz=252751504.1447378978.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); prf=pls%7C%7D%7C%7DgeneralFilter%7C%7D17%7C%7DfromItem%7C%7D324%7C%7DcategoryFilter%7C%7D14023%7C%7DstyleFilter%7C%7D-1%7C%7DmetroAreaFilter%7C%7D-1%7C%7DauthorFilter%7C%7D-1%7C%7DprofFilter%7C%7D-1%7C%7DgalleryFilter%7C%7D-1%7C%7DprojectFilter%7C%7D-1%7C%7DsearchFilter%7C%7D%7C%7DkeywordFilter%7C%7D%7C%7DfeaturedType%7C%7D-1%7C%7DlistStyle%7C%7D; documentWidth=1440; documentHeight=763; __utmb=252751504.7.10.1447482691; __utmc=252751504; __utmt=1
+Connection: keep-alive
+Cache-Control: max-age=0
+
