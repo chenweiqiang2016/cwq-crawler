@@ -1,0 +1,13 @@
+GET /best-sales HTTP/1.1
+Host: beverlybeaute.com
+User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64; rv:42.0) Gecko/20100101 Firefox/42.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3
+Accept-Encoding: gzip, deflate
+Referer: https://beverlybeaute.com/
+Cookie: PrestaShop-bf43ae85ae9dfc499cfe15ca4c97200f=cIeyeiVG9f92sC1rBaabnoqmCVBJYbZW5iqYojDki9tIX6bg%2FMGc0ZPviFODnluSLQ3YG92FSgDKDTope12YbkCYCtvQgtuujrFPQIjiYi1j%2FkobmldRYpDWdK6wajxn9eFHAkbfirIu4ElV88X8ZS64U4a8z1X6r5REw%2BLOXiVd1ovDVOK191Nfxds82Se%2B3aTKTkjffzWwDURNGZaCmAUBIGGUsor9LNLrJnfLuJSASD6OjPQCpE3cCZ%2FX2fMiA21%2B2nD4gN1v782xNOyEndwuUPs4j1NFwp1gRGaWp8obtzN3IYKSoglCPUjolI6bZwjvhMv%2BdAYYfYICX2N2ZDXJrUB4GJEFeYXmUNtF%2BXzyIB%2BaaMprpCtepilFIbkNlMKYqyEhAR1YK4fdRtHZO9OZcUqXguMfKFEcnrQ3UgArqFJEvF9578VRh%2BECCMyWEQDWepq8Xm7%2Bh1w0PRvwoTm3j2Y%2BNWHk73Co7Re5yEwGH4%2BAg7CLDqckyu6bF7ewjtnAiJrWdkEitrPCKwqzsQ%3D%3D000390; _ga=GA1.2.1220355186.1447315562; _gat=1
+Connection: keep-alive
+Cache-Control: max-age=0
+
+
+
