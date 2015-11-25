@@ -17,9 +17,6 @@ class JdParser(Parser):
         doc = PyQuery(category_page_content)
         productNodeList = doc('ul.gl-warp > li.gl-item')
         productList = []
-        fw = open("C:/users/administrator/desktop/p.html", 'w')
-        fw.write(category_page_content)
-        fw.close()
         for node in productNodeList:
             nodeQ = PyQuery(node)
             productInfo = self.newProduct()
