@@ -1,0 +1,11 @@
+GET /most-popular-wigs.html HTTP/1.1
+Host: www.bestwigoutlet.com
+Connection: keep-alive
+Cache-Control: max-age=0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.85 Safari/537.36
+Accept-Encoding: gzip, deflate, sdch
+Accept-Language: zh-CN,zh;q=0.8
+Cookie: PHPSESSID=04b785ce51f3a6de33db8c210a0af810; __unam=2d08d6b-1513478debd-260f8dd6-2; _gat=1; lastpage=%2Fmost-popular-wigs.html; _ga=GA1.2.1018460494.1448284071
+
