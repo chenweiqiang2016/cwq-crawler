@@ -37,6 +37,9 @@ def load_http_headers(filename):
             print 'Invalid line: %s' %line
         headers[fields[0].strip()] = fields[1].strip()
     return headers
+
+def getExchangeRate(origin, dest):
+    pass
     
 
 if __name__ == '__main__':
