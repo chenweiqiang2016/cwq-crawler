@@ -1,12 +1,38 @@
 # -*- coding: utf-8 -*-
 
 import re
-import ConfigParser
+from ConfigParser import ConfigParser
+
+
+class KindConfigParser(ConfigParser):
+    def get2(self, option, default=''):
+        result = ''
+        try:
+            result = self.get('default', option)
+        except:
+            result = default
+        return result
 
 def read_config(filename):
-    cf = ConfigParser.ConfigParser()
-    cf.read(filename)
-    return cf
+    lines = read_file(filename)
+    return read_configbytext(lines)
+
+def read_configbytext(lines):
+    if not re.findall("\[[\w]+\]", lines):
+        lines = '[default]\n' + lines
+    fp = open('./config/tmp.cfg', 'w')
+    fp.write(lines)
+    fp.close()
+    config = KindConfigParser()
+    config.readfp(open('./config/tmp.cfg', 'r'))
+    return config
+
+def read_file(filename):
+    fr = open(filename, 'r')
+    try:
+        return fr.read()
+    finally:
+        fr.close()
 
 def read_headers(filename):
     return {}
@@ -33,14 +59,24 @@ def load_http_headers(filename):
         if not line:
             break
         fields = line.split(':')
+        if len(fields) > 2: #Invalid line: User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64; rv:42.0) Gecko/20100101 Firefox/42.0
+            fields = line.split(': ')
         if len(fields) != 2:
             print 'Invalid line: %s' %line
+            continue
         headers[fields[0].strip()] = fields[1].strip()
     return headers
 
 def getExchangeRate(origin, dest):
     pass
-    
+
+def print_csvline(fw, datas):
+    #['\xe6\x95\xb0\xe7\xa0\x81', '\xe6\x99\xba\xe8\x83\xbd\xe8\xae\xbe\xe5\xa4\x87', u'\u5c0f\u7c73\uff08MI\uff09\u667a\u80fd\u4f53\u91cd\u79e4 \u5bb6\u7528\u5065\u5eb7\u79e4 \u7cbe\u51c6\u79e4', '1545210']
+    #UnicodeDecodeError: 'ascii' codec can't decode byte 0xe6 in position 0: ordinal not in range(128)
+    for i in range(0, len(datas)):
+        if isinstance(datas[i], unicode):
+            datas[i] = datas[i].encode('utf-8')
+    fw.write('\t'.join(datas) + '\n')
 
 if __name__ == '__main__':
     print extractNum('cwq7. 23')

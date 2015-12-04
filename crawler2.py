@@ -1,133 +1,215 @@
-# -*- coding: utf-8 -*-
-
 import httplib2
-import lockfile
+import json
 import sys
-import os.path
-from utils import read_config
+import datetime
+import socket
+from utils import read_config, print_csvline, load_http_headers
 
 class Merchant:
-    def __init__(self, name, crawlEntryUrl=None):
-        self.name = name
-        self.crawlEntryUrl = crawlEntryUrl if crawlEntryUrl else None
-        self.distributedFetch = False
-        self.headersFile = None
-        self.parser = None
+    def __init__(self, merchantName, url):
+        self.merchantName = merchantName
+        self.url = url
+        self.productFields = ['level1_category', 'level2_category', 'name', 'sku_id']
+        self.crawlEntryUrl = None
+        self.config = None
 
 class CategoryInfo:
-    pass
+    def __init__(self, merchant):
+        self.merchant = merchant
+        self.parent_categories = None # a list
+        
+    def getLevel1Category(self):
+        if not self.parent_categories:
+            return self.name
+        return self.parent_categories[0]
+    
+    def getLevel2Category(self):
+        if self.parent_categories and len(self.parent_categories) >= 2:
+            return self.parent_categories[1]
+        elif self.parent_categories and len(self.parent_categories) == 1:
+            return self.name
+        return None
 
-class ProductInfo:
-    pass
+    def getLevel3Category(self):
+        if self.parent_categories and len(self.parent_categories) == 2:
+            return self.name
+  
+class ProductInfo():
+    def __init__(self, merchant):
+        self.merchant = merchant
+        self.attrs = {}
+    
+    def __getitem__(self, key):
+        if self.attrs.has_key(key):
+            return self.attrs.get(key)
+    
+    def __setitem__(self, key, value):
+        self.attrs[key] = value
+
+    def set_categories(self, category_info):
+        if category_info.getLevel1Category():
+            self['level1_category'] = category_info.getLevel1Category()
+        if category_info.getLevel2Category():
+            self['level2_category'] = category_info.getLevel2Category()
+        if category_info.getLevel3Category():
+            self['level3_category'] = category_info.getLevel3Category()
+    
+    def to_list(self):
+        result = []
+        for field in self.merchant.productFields:
+            result.append(self[field])
+        return result
 
 class FetchTask:
-    def __init__(self, **args):
-        self.url = args['url']
-        self.headers = args['headers']
+    def __init__(self, **kwargs):
+        self.url = kwargs['url']
+        self.headers = kwargs['headers']
+        self.encoding = kwargs['encoding']
     
-    def toJson(self):
-        pass
+    def to_str(self):
+        dic_json = {'url': self.url,
+                    'headers': self.headers,
+                    'encoding': self.encoding}
+        return json.dumps(dic_json)
 
-class Fetch:
+class Fetcher:
+    def __init__(self, merchant):
+        self.merchant = merchant
+        
     def fetch(self, task):
-        h = httplib2.Http()
-        response, content = h.request(uri=task.url, method='GET', headers=task.headers)
+        h = httplib2.Http(timeout=30)
+        response, content = h.request(uri=task.url,
+                                      method='GET',
+                                      headers=task.headers)
         return response.status, content
     
-    def getHtmlDoc(self, fetchTask):
-        pass
-
-class Parser:
-    def parseCategories(self, homepage_content):
-        pass
+    def getHtmlDoc(self, fetchTask, try_times):
+        status, content = 200, ''
+        times = 0
+        while True:
+            times += 1
+            try:
+                status, content = self.fetch(fetchTask)
+                if status in [200]:
+                    break
+            except httplib2.ServerNotFoundError, e:
+                print e
+            except socket.error, e:
+                print e
+            except httplib2.RelativeURIError, e:
+                print e
+            if times >= try_times:
+                break
+        return status, content
     
-    def parseProductsByCategory(self, category_page_content):
-        pass
+    def fetchCategoryPageContent(self, furl):
+        fetchTask = FetchTask(url=furl,
+                              encoding='utf-8', 
+                              headers=self.merchant.headers)
+        status, content = self.getHtmlDoc(fetchTask, 5)
+        return content
     
-    def needProductDetails(self):
-        return False #默认是不抓详情页的
+    def fetchProductListPageContent(self, furl):
+        fetchTask = FetchTask(url=furl,
+                              encoding='utf-8',
+                              headers={})
+        status, content = self.getHtmlDoc(fetchTask, 3)
+        return content
 
+    def fetchProductPageContent(self, furl):
+        fetchTask = FetchTask(url=furl,
+                              encoding='utf-8',
+                              headers={})
+        status, content = self.getHtmlDoc(fetchTask, 3)
+        return content
+    
+    def fetchPageWithoutHeaders(self, furl):
+        fetchTask = FetchTask(url=furl,
+                              encoding='utf-8',
+                              headers={})
+        status, content = self.getHtmlDoc(fetchTask, 3)
+        return content
 
 class Crawler:
     def __init__(self, merchant, parser):
         self.merchant = merchant
+        self.fetcher = Fetcher(merchant)
         self.parser = parser
-    
+        self.filename = merchant.merchantName + '_' + datetime.date.today().strftime("%m-%d-%Y") + '_productInfo.inprogress'
+        self.fw = open(self.filename, 'w')
+
     def crawl(self):
-        categoryList = self.getCategoryList()
-        failedCategoryList = self.crawlCategoryList(categoryList)
-        if failedCategoryList:
-            finalFailedCategoryList = self.crawlCategoryList(failedCategoryList)
-        
-    
-    def getCategoryList(self):
-        homepage_content = self.fetchCategoryPageContent(self.merchant.crawlEntryUrl)
-        categoryList = self.parse.parseCategories(homepage_content)
+        categoryList = self.getInitialCategories()
+        self.crawlCategoryList(categoryList)
+        self.fw.close()
+
+    def getInitialCategories(self):
+        homepage_content =self.fetcher.fetchCategoryPageContent(self.merchant.crawlEntryUrl)
+        categoryList = self.parser.parseCategories(homepage_content)
         return categoryList
     
     def crawlCategoryList(self, categoryList):
-        failedCategoryList = []
-        for i, category_info in enumerate(categoryList):
-            try:
-                self.crawlProducts(category_info)
-            except:
-                failedCategoryList.append(category_info)
-        return failedCategoryList
-                
-    
-    def crawlProducts(self, category_info):
-        cur_url = category_info.url
-        while True:
-            category_page_content =self.fetchCategoryPageContent(cur_url)
-            productList  = self.parser.parseProductsByCategory(category_page_content)
-            for product in productList:
-                pass
-
-    def fetchCategoryPageContent(self, furl):
-        return ""
-    
-    def fetchProductPageContent(self, furl):
-        return ""
+        for category in categoryList:
+            self.crawlProducts(category)
         
+    def crawlProducts(self, category_info):
+        url = category_info.url
+        while True:
+            products_page_content = self.fetcher.fetchProductListPageContent(url)
+            parsed_products = self.parser.parseProductsByCategory(products_page_content, category_info)
+            for productInfo in parsed_products:
+                print_csvline(self.fw, productInfo.to_list())
+            url = self.parser.parseNextPageUrl(products_page_content)
+            if not url:
+                break
 
-def crawl(merchantName):
-    merchant = init_merchant(merchantName)
-    #该步主要是获取parser
-    moduleName, parserClass = merchant.parser.split('.')
-    module = __import__(moduleName)
-    parser = getattr(module, parserClass)
-    #得到crawler的实例
-    crawler = Crawler(merchant, parser)
-    crawler.crawl()
+class Parser:
+    def __init__(self, merchant):
+        self.merchant = merchant
+
+    def parseCategories(self, homepage_content):
+        pass
+    
+    def parseNextPageUrl(self, products_page_content):
+        pass
+    
+    def newCategory(self):
+        return CategoryInfo(self.merchant)
+    
+    def newProduct(self):
+        return ProductInfo(self.merchant)
     
 
 def init_merchant(merchantName):
-    cfgFilename = './config/' + merchantName + '.cfg'  #config文件放在config文件夹下
-    config = read_config(cfgFilename)
-    m = Merchant(merchantName)
-    m.distributedFetch = config.get('default', 'distributedFetch')
-    m.headersFile = config.get('default', 'headersFile')
-    m.crawlEntryUrl = config.get('default', 'crawlEntryUrl')
-    m.parser = config.get('default', 'parser')
+    configFile = './config/' + merchantName + '.cfg'
+    config = read_config(configFile)
+    siteUrl = config.get2("url")
+    if not siteUrl:
+        siteUrl = 'www.' + merchantName + '.com'
+    m = Merchant(merchantName, siteUrl)
+    m.crawlEntryUrl = config.get2("crawlEntryUrl")
+    headersFile = config.get2("headersFile")
+    if headersFile:
+        m.headers = load_http_headers('./config/' + headersFile)
+    m.config = config
     return m
+
+def crawl(merchantName):
+    merchant = init_merchant(merchantName)
+    moduleName, parserClassName = merchant.config.get2('parser').split(".")
+    module = __import__(moduleName)
+    parserClass = getattr(module, parserClassName)
+    parser = parserClass(merchant)
+    crawler = Crawler(merchant, parser)
+    crawler.crawl()
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print >> sys.stderr, 'Usage: python %s merchantName' % os.path.split(sys.argv[0])[1]
+        print >> sys.stderr, 'Usage: python crawler2.py <merchantName>'
         sys.exit(1)
     merchantName = sys.argv[1]
-    #一种情形下没法自动解锁, 那就是程序运行之前就存在锁, 即本次完整运行本次解锁
-    lock = lockfile.FileLock(merchantName + '-lock')
-    try:
-        lock.acquire(10)
-    except Exception, e:
-        print e #Timeout waiting to acquire lock for merchantName-lock
-        sys.exit(1)
-    try:
-        crawl(merchantName)
-    except Exception, e:
-        print e
-    finally:
-        lock.release()
-        
+    crawl(merchantName)
     
+
+    
+        
