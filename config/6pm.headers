@@ -1,0 +1,10 @@
+GET / HTTP/1.1
+Host: www.6pm.com
+User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64; rv:42.0) Gecko/20100101 Firefox/42.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3
+Accept-Encoding: gzip, deflate
+Cookie: zfc=ChgIh73JgZcqEJzciouBqgEY9+mNteTDyQISDgoGc2M2c3Q0EAEYCCABEgsKAzZoaBAAGAEgAQ==; deviceType=desktop; tid=HWU7gkmeomOdXMTpfctk1KA306LsvpOt; __utma=1.609590485.1449286328.1449286328.1449286328.1; __utmb=1.15.9.1449286484584; __utmc=1; __utmz=1.1449286328.1.1.utmcsr=(direct)|utmccn=(direct)|utmcmd=(none); geo=CN/22/_/Beijing; session-id=191-6066377-2573061; session-id-time=2082787201l; pixelServer={"isKilled":false,"iframeHost":"d169bbxks24g2u.cloudfront.net","iframePathname":"6pm.html","session":{"tid":"HWU7gkmeomOdXMTpfctk1KA306LsvpOt","isVip":null}}; ubid-main=185-7111521-6049764; qid=1449286498313; session-token=gYIS+/29TrT/0Dm5xnPDur0sfDFradKGa1XZ/SxDMPObdQEMc+kLmieXSX26iIpzg8TGZSKEdlj12DdZoilb/dPDMZUqqiL8kgWuNMhD2rT2WA50KewCxKYgvv6Dy75Vxr9jl1+YA4lIR+835HwTciw4BGNQYSbXDCml75yRwKSnRNIZC/ih77M8YP3dDWv8; __utmt_pageTrackerPriTr=1
+Connection: keep-alive
+Cache-Control: max-age=0
+

@@ -12,6 +12,19 @@ class KindConfigParser(ConfigParser):
         except:
             result = default
         return result
+    
+    def getList(self, option, default=[]):
+        result = []
+        try:
+            values = self.get('default', option)
+            for value in values.split(','):
+                result.append(value.strip())
+        except:
+            result = default
+        return result
+    
+    def getBoolean(self):
+        pass
 
 def read_config(filename):
     lines = read_file(filename)

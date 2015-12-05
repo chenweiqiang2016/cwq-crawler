@@ -2,4 +2,4 @@ output/
 
 logs/
 
-.pyc
+*.pyc

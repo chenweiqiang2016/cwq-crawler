@@ -1,17 +1,40 @@
+# -*- coding: utf-8 -*-
+
 import httplib2
 import json
 import sys
 import datetime
 import socket
+import lockfile
+import os
+import shutil
+import logging
+from logging import debug, info, warning, error
 from utils import read_config, print_csvline, load_http_headers
+
 
 class Merchant:
     def __init__(self, merchantName, url):
         self.merchantName = merchantName
-        self.url = url
-        self.productFields = ['level1_category', 'level2_category', 'name', 'sku_id']
+        self.wwwDomain = url
+        self.homeUrl = "http://" + url
+        self.productFields = ['level1_category', 'level2_category', 'level3_category',\
+                               'name', 'product_url', 'img_url',\
+                               'sku_id', 'price', 'reviews']
         self.crawlEntryUrl = None
         self.config = None
+    
+    def filteruri(self, uri):
+        if uri.startswith("http"):
+            return uri
+        elif uri.startswith("//"):
+            return 'http' + uri
+        else:
+            if not self.homeUrl.endswith('/'):
+                homeUrl = self.homeUrl + '/'
+            if uri.startswith('/'):
+                uri = uri[1:]
+            return homeUrl + uri
 
 class CategoryInfo:
     def __init__(self, merchant):
@@ -129,6 +152,13 @@ class Fetcher:
                               headers={})
         status, content = self.getHtmlDoc(fetchTask, 3)
         return content
+    
+    def fetchSocialLikes(self, url):
+        furl = 'http://graph.facebook.com/' + url
+        content = self.fetchPageWithoutHeaders(furl)
+        datas = json.loads(content)
+        if datas.has_key('shares'):
+            return datas['shares']
 
 class Crawler:
     def __init__(self, merchant, parser):
@@ -154,10 +184,22 @@ class Crawler:
         
     def crawlProducts(self, category_info):
         url = category_info.url
+        category_idx, page_idx = 0, 0
         while True:
+            num_idx = 0
             products_page_content = self.fetcher.fetchProductListPageContent(url)
+            page_idx += 1
             parsed_products = self.parser.parseProductsByCategory(products_page_content, category_info)
             for productInfo in parsed_products:
+                num_idx += 1
+                category_idx += 1
+                if self.parser.needProductDetails():
+                    product_page_content = self.fetcher.fetchProductPageContent(productInfo['product_url'])
+                    self.parser.parseProductDetails(product_page_content, productInfo)
+                if self.parser.needRankInfo():
+                    productInfo['page_idx'] = str(page_idx)
+                    productInfo['num_idx'] = str(num_idx)
+                    productInfo['category_index'] = str(category_idx)
                 print_csvline(self.fw, productInfo.to_list())
             url = self.parser.parseNextPageUrl(products_page_content)
             if not url:
@@ -166,12 +208,19 @@ class Crawler:
 class Parser:
     def __init__(self, merchant):
         self.merchant = merchant
+        self.crawler = None
 
     def parseCategories(self, homepage_content):
         pass
     
     def parseNextPageUrl(self, products_page_content):
         pass
+    
+    def needProductDetails(self):
+        return False
+    
+    def needRankInfo(self): #现阶段都是需要的
+        return True
     
     def newCategory(self):
         return CategoryInfo(self.merchant)
@@ -188,6 +237,7 @@ def init_merchant(merchantName):
         siteUrl = 'www.' + merchantName + '.com'
     m = Merchant(merchantName, siteUrl)
     m.crawlEntryUrl = config.get2("crawlEntryUrl")
+    m.productFields = config.getList("productFields")
     headersFile = config.get2("headersFile")
     if headersFile:
         m.headers = load_http_headers('./config/' + headersFile)
@@ -201,6 +251,7 @@ def crawl(merchantName):
     parserClass = getattr(module, parserClassName)
     parser = parserClass(merchant)
     crawler = Crawler(merchant, parser)
+    parser.crawler = crawler  #方便调用一些方法
     crawler.crawl()
 
 if __name__ == '__main__':
@@ -208,8 +259,31 @@ if __name__ == '__main__':
         print >> sys.stderr, 'Usage: python crawler2.py <merchantName>'
         sys.exit(1)
     merchantName = sys.argv[1]
-    crawl(merchantName)
-    
+    #1. 一次完整的运行总是会运行crawl()方法, 并将锁解除
+    #2. 文件目录下无锁时, 生成新锁, 最后release()
+    #3. 文件目录下有锁时, 使用就锁, 最后remove()
+    try:
+        isLockCrawlMerchant = True
+        if isLockCrawlMerchant:
+            lock = lockfile.FileLock("crawl-" + merchantName)
+            info("Try to acquire a lock of merchant <%s>..." %merchantName)
+            try:
+                lock.acquire(10)
+                info("Well done, we generate a new lock.")
+            except Exception, e:
+                warning("A lock with same name exists, we just use it as new lock or stop our work?")
+                debug(e)  #Timeout waiting to acquire lock for
+        else:
+            info("Maybe we are testing, without using lock...")
+        crawl(merchantName)
+    except Exception, e:
+        print e
+    finally:
+        try:
+            if locals().has_key('lock'): #'var'
+                lock.release() #lockfile.NotMyLock: crawl-xxx is locked, but not by me
+                info('New lock release!')
+        except lockfile.NotMyLock, e:
+            shutil.rmtree('crawl-' + merchantName + '.lock', True)
+            info('After work, we remove the old lock with same name!')
 
-    
-        
