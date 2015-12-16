@@ -1,30 +1,38 @@
 # -*- coding: utf-8 -*-
 
 import re
+import StringIO
 from ConfigParser import ConfigParser
 
-
 class KindConfigParser(ConfigParser):
-    def get2(self, option, default=''):
+    def get2(self, option, default='', section='default', multiLines=False):
         result = ''
         try:
-            result = self.get('default', option)
+            result = self.get(section, option)
         except:
             result = default
+        if not multiLines:
+            result.replace("\n", '')
         return result
     
-    def getList(self, option, default=[]):
+    def getList(self, option, default=[], section='default'):
         result = []
         try:
-            values = self.get('default', option)
+            values = self.get(section, option)
             for value in values.split(','):
                 result.append(value.strip())
         except:
             result = default
         return result
     
-    def getBoolean(self):
-        pass
+    def getBoolean(self, option, section='default'):
+        try:
+            value = self.get(section, option)
+            if value and value.lower() in self._boolean_states:
+                return self._boolean_states[value.lower()]
+        except:
+            pass
+        return False
 
 def read_config(filename):
     lines = read_file(filename)
@@ -33,11 +41,10 @@ def read_config(filename):
 def read_configbytext(lines):
     if not re.findall("\[[\w]+\]", lines):
         lines = '[default]\n' + lines
-    fp = open('./config/tmp.cfg', 'w')
-    fp.write(lines)
-    fp.close()
+#     fp = open('./config/tmp.cfg', 'w')#     fp.write(lines)#     fp.close()
+    fp = StringIO.StringIO(lines)
     config = KindConfigParser()
-    config.readfp(open('./config/tmp.cfg', 'r'))
+    config.readfp(fp)
     return config
 
 def read_file(filename):

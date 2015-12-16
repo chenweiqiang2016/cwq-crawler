@@ -2,6 +2,7 @@ eclipse.preferences.version=1
 encoding/crawl_baokuanyi.py=utf-8
 encoding/crawler2.py=utf-8
 encoding/eelly.py=utf-8
+encoding/houzz.py=utf-8
 encoding/rosewholesale.py=utf-8
 encoding/shein.py=utf-8
 encoding/utils.py=utf-8

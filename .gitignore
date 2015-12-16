@@ -3,3 +3,5 @@ output/
 logs/
 
 *.pyc
+
+*.lock
