@@ -5,5 +5,6 @@ encoding/eelly.py=utf-8
 encoding/houzz.py=utf-8
 encoding/rosewholesale.py=utf-8
 encoding/shein.py=utf-8
+encoding/stat_data.py=utf-8
 encoding/utils.py=utf-8
 encoding/zaful.py=utf-8
