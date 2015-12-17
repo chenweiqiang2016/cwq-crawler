@@ -72,7 +72,10 @@ class Stat:
             return 1.0
 
     def reviewsAndLikesPerRow(self, line):
-        datas = line.split('\t')
+        datas = line.strip().split('\t')
+        if len(datas) != len(self.headers):
+            print 'skip invalid line: %s' %line
+            return (-1, -1)
         reviews = int(ensure_num(datas[self.reviewsIndex])) if self.reviewsIndex>=0 else 0
         likes = int(ensure_num(datas[self.likesIndex])) if self.likesIndex>=0 else 0
         return (reviews, likes)
@@ -85,6 +88,8 @@ class Stat:
         totalProductCount = 0
         for line in fin.readlines():
             reviews, likes = self.reviewsAndLikesPerRow(line)
+            if reviews == -1 and likes == -1: #invalid line
+                continue
             data = int(round(reviews * self.reviewsRadio + likes * self.likesRadio))
             totalProductCount += 1
             if statDist.has_key(data):

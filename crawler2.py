@@ -7,14 +7,17 @@ import datetime
 import socket
 import lockfile
 import os
+import re
 import shutil
 import time
 import random
 import ConfigParser
+import StringIO
+import codecs
 import logging
 from logging import debug, info, warning, error
-from utils import read_config, print_csvline, load_http_headers
-
+from utils import read_config, print_csvline, load_http_headers, read_headers
+import stat_data
 
 class Merchant:
     def __init__(self, merchantName, url, crawlEntryUrl=None):
@@ -28,6 +31,8 @@ class Merchant:
                                'name', 'product_url', 'img_url',\
                                'sku_id', 'price', 'reviews']
         self.maxPagesPerCategory = 999
+        self.includedCategories = ''
+        self.excludedCategories = ''
         self.useDistributedFetch = False
         self.useWebClient = False
         self.isSavePages = False
@@ -53,6 +58,28 @@ class Merchant:
             if uri.startswith('/'):
                 uri = uri[1:]
             return homeUrl + uri
+    
+    def isCategoryIncluded(self, level1Name, level2Name):
+        if not self.includedCategories:
+            return True
+        fp = StringIO.StringIO(self.includedCategories)
+        for line in fp:
+            fields = line.strip().split('/')
+            if fields[0].strip() == level1Name:
+                if fields[1].strip() == level2Name or fields[1].strip().upper == 'ALL':
+                    return True
+        return False
+
+    def isCategoryExcluded(self, level1Name, level2Name):
+        if not self.excludedCategories:
+            return False
+        fp = StringIO.StringIO(self.excludedCategories)
+        for line in fp:
+            fields = line.strip().split('/')
+            if fields[0].strip() == level1Name:
+                if fields[1].strip() == level2Name or fields[1].strip().upper == 'ALL':
+                    return True
+        return False
 
 class CategoryInfo:
     def __init__(self, merchant):
@@ -119,8 +146,16 @@ class ProductInfo():
         elif isinstance(item, unicode):
             return item.encode('utf-8')
         else:
-            print type(item)
             return str(item)
+    
+    def formalize(self):
+        self['name'] = self.formalize_name()
+        return self
+    
+    def formalize_name(self):
+        #name存在换行
+        #http://www.houzz.com/photos/40672073/Negin-Sofa-Bed-Turquoise-Fabric-Espresso-Rattan-modern-futons
+        return re.sub('\s+', ' ', self['name'].strip())
 
 class FetchTask:
     def __init__(self, **kwargs):
@@ -180,16 +215,43 @@ class Crawler:
             self.fetcher = RabbitmqFetcher()
         else:
             self.fetcher = Fetcher(merchant)
-        self.filename = merchant.merchantName + '_' + datetime.date.today().strftime("%m-%d-%Y") + '_productInfo.inprogress'
+        filename = '%s_%s_productInfo.inprogress' %(merchant.merchantName, datetime.date.today().strftime("%m-%d-%Y"))
+        self.filename = os.path.join(self.config.get('all', 'save.dir'), filename)
         self.fp = None
+        self.cachedProducts = {}
     
     def rmCleanFile(self):
-        pass
+        if os.path.exists(self.filename):
+            fp = open(self.filename, 'r')
+            line = fp.readline().strip()
+            if not line:
+                os.remove(self.filename)
+            fp.close()
 
     def initDataFile(self):
-        save_dir = self.config.get('all', 'save.dir')
-        self.filePath = os.path.join(save_dir, self.filename)
-        self.fp = open(self.filePath, 'w')
+        crawledProducts = []
+        if os.path.exists(self.filename):
+            info("open origin file to analyse.")
+            self.fp = open(self.filename, 'r')
+            line = self.fp.readline()
+            headers = read_headers(line)
+            if headers == self.merchant.productFields:
+                url_idx = headers.index('product_url')
+                info("loading datas from origin file...")
+                for line in self.fp.readlines():
+                    data = line.strip().split('\t')
+                    if len(data) != len(headers):
+                        continue
+                    crawledProducts.append(data)
+                    self.cachedProducts[data[url_idx]] = 1
+            info("find %s count of products." %(len(crawledProducts)))
+            self.fp.close()
+        #将headers以及已经抓取的商品信息写入文件
+        self.fp = open(self.filename, 'w')
+        self.fp.write(codecs.BOM_UTF8)
+        self.fp.write('\t'.join(self.merchant.productFields) + '\n')
+        for product in crawledProducts:
+            print_csvline(self.fp, product)
 
     def crawl(self):
         #删除空文件
@@ -198,17 +260,35 @@ class Crawler:
         self.initDataFile()
         #从入口页获取可以获得的全部品类
         categoryList = self.getInitialCategories()
+        if not categoryList:
+            raise Exception("Crawl Entrance Page Failed. Please Improve Program.")
         #根据url进行一次去重
         categoryList = self.rmDuplicateCategories(categoryList)
         info("From the entrance page, we get following categories, totally %s:" %len(categoryList))
         for category in categoryList:
             info(category)
+        info("Verify whether the category is configured to crawl...")
+        categoryList = [category for category in categoryList if self.merchant.isCategoryIncluded(category.getLevel1Category(),
+                                                                                                  category.getLevel2Category())]
+        categoryList = [category for category in categoryList if not self.merchant.isCategoryExcluded(category.getLevel1Category(),
+                                                                                                      category.getLevel2Category())]
+        info("After reduce according to config file, %d category left." %len(categoryList))
+        if not categoryList:
+            raise Exception("No Categories Configured To Crawl. Please Check!")
+        else:
+            info('After verification, we need to crawl below categories, totally %d: ' %(len(categoryList)))
+            for category in categoryList:
+                info(category)
         try:
             self.crawlCategoryList(categoryList)
         except Exception, e:
             print e
         finally:
             self.fp.close()
+        
+        self.renameAndGeneExcel()
+        
+        self.statScoringField()
         
         info('crawl end.')
 
@@ -244,6 +324,8 @@ class Crawler:
             for productInfo in parsed_products:
                 num_idx += 1
                 category_idx += 1
+                if self.cachedProducts.has_key(productInfo['product_url']):
+                    continue
                 try:
                     if self.parser.needProductDetails():
                         product_page_content = self.fetcher.fetchProductPageContent(productInfo['product_url'])
@@ -252,7 +334,7 @@ class Crawler:
                         productInfo['page_idx'] = str(page_idx)
                         productInfo['num_idx'] = str(num_idx)
                         productInfo['category_index'] = str(category_idx)
-                    print_csvline(self.fp, productInfo.to_list())
+                    print_csvline(self.fp, productInfo.formalize().to_list())
                     success_count += 1
                 except:
                     fail_count += 1
@@ -301,11 +383,22 @@ class Crawler:
     
     def fetchSocialLikes(self, url):
         furl = 'http://graph.facebook.com/' + url
-        info('fetching facebook likes of product @ %s', url)
+        debug('fetching facebook likes of product @ %s', url)
         content = self.fetchPageWithoutHeaders(furl)
         datas = json.loads(content)
         if datas.has_key('shares'):
             return datas['shares']
+    
+    def renameAndGeneExcel(self):
+        finalFilename = self.filename.replace("inprogress", "csv")
+        os.rename(self.filename, finalFilename)
+        self.filename = finalFilename
+
+    def statScoringField(self):
+        stat = stat_data.Stat(self.filename)
+        statResult = stat.stat()
+        dist = statResult.output()
+        info("stat:\n%s" %dist)
 
 class Parser:
     def __init__(self, merchant):
@@ -353,7 +446,7 @@ def config_log(merchantName, config):
                         level=logLevel,
                         format="%(asctime)s [%(levelname)s] %(message)s",
                         datefmt="%a %Y/%m/%d %H:%M:%S",
-                        filemode="a")
+                        filemode="w")
 
 def init_merchant(merchantName, config):
     siteUrl = config.get2("url")
@@ -370,6 +463,8 @@ def init_merchant(merchantName, config):
     if config.get2('maxPagesPerCategory'):
         m.maxPagesPerCategory = int(config.get2('maxPagesPerCategory'))
     m.useWebClient = config.getBoolean('useWebClient')
+    m.includedCategories = config.get2('includedCategories', multiLines=True)
+    m.excludedCategories = config.get2('excludedCategories', multiLines=True)
     m.config = config
     if config.getBoolean('isSavePages'):
         m.initStoreDir()

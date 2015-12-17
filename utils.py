@@ -2,6 +2,7 @@
 
 import re
 import StringIO
+import codecs
 from ConfigParser import ConfigParser
 
 class KindConfigParser(ConfigParser):
@@ -54,8 +55,10 @@ def read_file(filename):
     finally:
         fr.close()
 
-def read_headers(filename):
-    return {}
+def read_headers(line):
+    if line.startswith(codecs.BOM_UTF8):
+        line = line[len(codecs.BOM_UTF8):]
+    return line.strip().split('\t')
 
 def extractNum(strText):
     '''仅仅用于对一个数字有关的字符串进行匹配, 多个数字的提取不适用
