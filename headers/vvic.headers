@@ -1,0 +1,9 @@
+GET /store.htm HTTP/1.1
+Host: www.vvic.com
+User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64; rv:43.0) Gecko/20100101 Firefox/43.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
+Accept-Language: zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3
+Accept-Encoding: gzip, deflate
+Cookie: _ga=GA1.2.1110048085.1453357684; pgv_pvi=5117366272; visited="526248511221,"; JSESSIONID=0DB7BF0C833A9AB8A97B5E2F507B3DDD; route=bf722970e6c0d6126a9acaa11a22d28c; IESESSION=alive; pgv_si=s9385420800
+Connection: keep-alive
+Cache-Control: max-age=0

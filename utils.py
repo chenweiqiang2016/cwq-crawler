@@ -78,6 +78,14 @@ def print_csvline(fw, datas):
             datas[i] = datas[i].encode('utf-8')
     fw.write('\t'.join(datas) + '\n')
 
+def clean_html(content, decode="utf-8"):
+#     content = content.replace("\r\n", "")
+    #TODO: 此处需要改进
+    content = re.sub('<!DOCTYPE.*dtd">', "", content)
+    #这个操作非常关键, 否则PyQuery得不出正确的结果
+    content = unicode(content, decode)
+    return content
+
 if __name__ == '__main__':
     print extractNum('cwq7. 23')
     print extractNum('9,999')
