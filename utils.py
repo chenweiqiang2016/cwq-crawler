@@ -74,6 +74,8 @@ def print_csvline(fw, datas):
     #['\xe6\x95\xb0\xe7\xa0\x81', '\xe6\x99\xba\xe8\x83\xbd\xe8\xae\xbe\xe5\xa4\x87', u'\u5c0f\u7c73\uff08MI\uff09\u667a\u80fd\u4f53\u91cd\u79e4 \u5bb6\u7528\u5065\u5eb7\u79e4 \u7cbe\u51c6\u79e4', '1545210']
     #UnicodeDecodeError: 'ascii' codec can't decode byte 0xe6 in position 0: ordinal not in range(128)
     for i in range(0, len(datas)):
+        if datas[i] is None:
+            datas[i] = ''
         if isinstance(datas[i], unicode):
             datas[i] = datas[i].encode('utf-8')
     fw.write('\t'.join(datas) + '\n')

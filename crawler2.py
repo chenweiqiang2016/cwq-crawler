@@ -1,15 +1,24 @@
+# -*- coding: utf-8 -*-
+
 import httplib2
 import json
 import sys
 import datetime
 import socket
+import codecs
 from utils import read_config, print_csvline, load_http_headers
 
 class Merchant:
     def __init__(self, merchantName, url):
         self.merchantName = merchantName
         self.url = url
-        self.productFields = ['level1_category', 'level2_category', 'name', 'sku_id']
+        self.productFields = ['level1_category', 'price',\
+                              'img_url', 'name', 'sku_id',\
+                              'product_url', 'store_name', \
+                              'bname', 'update_time',\
+                              'qq', 'telephone', 'marketName',\
+                              'floor', 'position', 'supplier_name',\
+                              'update_time', 'city', 'remark', 'imgs', 'size']
         self.crawlEntryUrl = None
         self.config = None
 
@@ -137,6 +146,13 @@ class Crawler:
         self.parser = parser
         self.filename = merchant.merchantName + '_' + datetime.date.today().strftime("%m-%d-%Y") + '_productInfo.inprogress'
         self.fw = open(self.filename, 'w')
+        self.fw.write(codecs.BOM_UTF8)
+        self.fw.write('\t'.join(self.merchant.productFields) + '\n')
+        #换一种写法
+#         first_line = self.merchant.productFields[0]
+#         for index in range(1, len(self.merchant.productFields)):
+#             first_line += ('\t' + self.merchant.productFields[index]) 
+#         print_csvline(self.fw, first_line)
 
     def crawl(self):
         categoryList = self.getInitialCategories()
@@ -154,11 +170,28 @@ class Crawler:
         
     def crawlProducts(self, category_info):
         url = category_info.url
+        page_num = 0
         while True:
             products_page_content = self.fetcher.fetchProductListPageContent(url)
             parsed_products = self.parser.parseProductsByCategory(products_page_content, category_info)
+            page_num += 1
             for productInfo in parsed_products:
-                print_csvline(self.fw, productInfo.to_list())
+                try:
+                    if self.parser.needProductDetails():
+                        #所属店铺的一些信息
+                        #http://www.vvic.com/api/shop/13906
+                        shop_api_content = self.fetcher.fetchProductPageContent("http://www.vvic.com/api/shop/" + productInfo['shop_id'])
+                        self.parser.parseShopDetails(shop_api_content, productInfo)
+                        #多个图片的url
+                        #http://www.vvic.com/api/item/700188
+                        item_api_content = self.fetcher.fetchProductPageContent("http://www.vvic.com/api/item/" + productInfo['sku_id'])
+                        self.parser.parseItemDetails(item_api_content, productInfo)
+                    print_csvline(self.fw, productInfo.to_list())
+                except Exception, e:
+                    print e
+                    print 'url:', productInfo['product_url']
+            if page_num >= 60:
+                break
             url = self.parser.parseNextPageUrl(products_page_content)
             if not url:
                 break
@@ -202,6 +235,7 @@ def crawl(merchantName):
     parser = parserClass(merchant)
     crawler = Crawler(merchant, parser)
     crawler.crawl()
+    print 'Well done.'
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
@@ -209,7 +243,7 @@ if __name__ == '__main__':
         sys.exit(1)
     merchantName = sys.argv[1]
     crawl(merchantName)
-    
+    print 'End.'
 
     
         
