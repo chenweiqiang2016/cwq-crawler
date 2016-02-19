@@ -190,7 +190,7 @@ class Crawler:
                 except Exception, e:
                     print e
                     print 'url:', productInfo['product_url']
-            if page_num >= 60:
+            if page_num >= 100:
                 break
             url = self.parser.parseNextPageUrl(products_page_content)
             if not url:
