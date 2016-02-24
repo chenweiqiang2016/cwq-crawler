@@ -1,3 +1,8 @@
+"""
+    2016/02/24 Chen Weiqiang 增加parseProductDetails 部分修改parseProductsByCategory
+"""
+
+
 from pyquery import PyQuery
 
 def parseCategories():
@@ -16,13 +21,18 @@ def parseCategories():
     return categoryList
 
 def parseProductsByCategory():
-    productNodeList = doc('div.primary-list > ul.clearfix > li')
+    #productNodeList = doc('div.primary-list > ul.clearfix > li') 有效, 作用相同
+    productNodeList = doc('div.primary-list > ul > li > div.pro-list-block') #48
     for node in productNodeList:
         nodeQ = PyQuery(node)
         product = self.newProduct()
-        product['name'] = nodeQ("div.p-name > a").attr('title')
+        product['name'] = nodeQ("div.p-name > a").attr('title') #.text()
         product['product_url'] = nodeQ("div.p-name > a").attr('href')
-        product['img_url'] = nodeQ("div.p-pic > a > img").attr('data-lazysrc')
+        productInfo['img_url'] = nodeQ('div.p-pic').find('img').attr('src')
+        #product['img_url'] = nodeQ("div.p-pic > a > img").attr('data-lazysrc')
         product['price'] = nodeQ('div.p-price > span.p-price-n').text().strip()
         product['price_old'] = nodeQ('div.p-price > span.p-price-o').text().strip()
-        
+
+def parseProductDetails():
+    doc('div.discount-price > b > span.salePrice').text()
+    
