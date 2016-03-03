@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-#使用json抓取联系页面的满意度 但是返回的数据不准 好多为0
+# 2016/3/3 使用json抓取联系页面的满意度 但是返回的数据不准 好多为0
 
 import httplib2
 import uuid
@@ -96,12 +96,28 @@ def parseSupplierContactPage(m):
         content2 = fetchContent(stat_url)
         json_data = json.loads(content2)
         m['satisfication'] = json_data['data']['sati']['satisfaction']
+        #抓全部商品数 和 动销 商品数
+        #'http://yiwu.1688.com/shop/ywzxbh03/page/offerlist.htm?tradenumFilter=true'
+        merchantId=re.findall('shop/(.*)/page', contact_page_url)[0]
+        all_products_url = 'http://yiwu.1688.com/shop/' + merchantId + '/page/offerlist.htm?tradenumFilter=true'
+        active_product_url = 'http://yiwu.1688.com/shop/' + merchantId + '/page/offerlist.htm'
+        content3 = fetchContent(all_products_url)
+        doc3 = PyQuery(content3)
+        m['products_count'] = extractNum(doc3('li[class="offer-list-tab-title current"] > a > em').text())
+        if m['products_count'] == 0:
+            m['products_count'] = doc3('ul[data-sp="paging-a"] > li > em.offer-count').text() 
+        content4 = fetchContent(active_product_url)
+        doc4 = PyQuery(content4)
+        m['active_products_count'] = extractNum(doc4('li[class="offer-list-tab-title current"] > a > em').text())
+        if m['active_products_count'] == 0:
+            m['active_products_count'] = doc4('ul[data-sp="paging-a"] > li > em.offer-count').text() 
     else:
         m['satisfication'] = ''
 
 def persistance(objList):
     fields = ['category', 'city', 'name', 'url', 'main_products', 'address', 'satisfaction_rate', 'retention_rates', 'weekly_sales',\
-              'years', 'isAlipay', 'isTrust', 'trade_medal', 'supply-grade', 'biz-type','contact', 'satisfication']
+              'years', 'isAlipay', 'isTrust', 'trade_medal', 'supply-grade', 'biz-type','contact', 'satisfication',\
+              'products_count', 'active_products_count']
     first_line = '\t'.join(fields) + '\n'
     fw = open(os.path.basename(__file__).split('.')[0] + "-result.csv", 'w')
     fw.write(first_line)
