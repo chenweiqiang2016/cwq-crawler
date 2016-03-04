@@ -2,6 +2,7 @@
 
 # 2016/3/3 增加字段: tag star reviews total_sales
 # 可能遭到屏蔽 只能适当时候运行
+# TODO 解决错误: raise socket.error, msg  socket.error: [Errno 10060]
 
 import httplib2
 import uuid
