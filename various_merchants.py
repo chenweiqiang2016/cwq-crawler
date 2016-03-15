@@ -11,7 +11,9 @@ def extract(url):
     #http://www.dx.com/p/h06-multi-function-gms-gps-gprs-vehicle-tracker-black-172624#.VuKnvnqcOjg
     sku_id = ''
     if url.find("dx") > 0:
-        sku_id = get_sku(url, "-([\d]+)[#$]")
+        sku_id = get_sku(url, "-([\d]+)#")#sku_id = get_sku(url, "-([\d]+)[#$]")
+        if not sku_id:
+            sku_id = get_sku(url, "-([\d]+)$")
     #http://www.focalprice.com/ID705W/Genuine_EU_Type_USB_Power_Adapter_for_iPad__iPhone_White.html
     elif url.find("focalprice") > 0:
         sku_id = get_sku(url, "/([\w]+)/")

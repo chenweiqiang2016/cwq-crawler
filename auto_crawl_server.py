@@ -191,7 +191,7 @@ processer = Processer()
 def test():
     processer.process(["123456", "http://www.ebay.com/itm/Genuine-Shark-New-Silver-Case-Date-Day-Leather-Quartz-Sport-Wrist-Watch-/350794635597"])
 
-test()
+# test()
 
 def process(info):
     """
@@ -207,10 +207,14 @@ def process(info):
         return json.dumps({'status': 0, 'reason': '已有商户操作异常'})
     else:
         return json.dumps({'status': 1, 'reason': ''})
+    
 
 def on_request(ch, method, props, body):
+    
+#     processer.db = Db()
 
     print(" [.] process(%s)" % body)
+
     response = process(body)
 
     ch.basic_publish(exchange='',
@@ -219,6 +223,9 @@ def on_request(ch, method, props, body):
                                                          props.correlation_id),
                      body=str(response))
     ch.basic_ack(delivery_tag = method.delivery_tag)
+    
+#     processer.db.close()
+#     processer.db.connect.close()
 
 channel.basic_qos(prefetch_count=1)
 channel.basic_consume(on_request, queue='auto_crawl')
