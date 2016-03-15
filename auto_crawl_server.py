@@ -5,9 +5,11 @@ import json
 import random
 import re
 import httplib2
+import datetime
 import MySQLdb
 from pyquery import PyQuery
 from utils import extractNum
+from various_merchants import extract, extractMerchantName, get_info_from_crawler
 
 credentials = pika.PlainCredentials('chenweiqiang', '123456')
 parameters = pika.ConnectionParameters('192.168.66.24', 5672, '/', credentials)
@@ -33,25 +35,6 @@ class Db:
 class Processer:
     def __init__(self):
         self.db = Db()
-        
-    def extract(self, url):
-        #http://www.dx.com/p/h06-multi-function-gms-gps-gprs-vehicle-tracker-black-172624#.VuKnvnqcOjg
-        sku_id = ''
-        if url.find("dx") > 0:
-            sku_id = self.get_sku(url, "-([\d]+)[#$]")
-#         elif url.find
-        return sku_id
-            
-    def get_sku(self, url, pattern):
-        if re.findall(pattern, url):
-            return re.findall(pattern, url)[0]
-        return ''
-    
-    def extractMerchantName(self, url):
-        if url.find("dx") > 0:
-            return "dx"
-        elif url.find("focalprice") > 0:
-            return "focalprice"
     
     def getMerchant(self, name):
         sql = """
@@ -74,7 +57,7 @@ class Processer:
         """
         litb_id, url = aList[0], aList[1]
         status = 1
-        merchantName = self.extractMerchantName(url)
+        merchantName = extractMerchantName(url)
         if not merchantName:
             status = 3
             return status
@@ -82,7 +65,7 @@ class Processer:
         if not merchantId:
             status = 5
             return status
-        sku_id = self.extract(url)
+        sku_id = extract(url)
         if not sku_id:
             status = 7
             return status
@@ -92,17 +75,18 @@ class Processer:
             """
                                              进行抓取, 插入
             """
-            product_info = self.get_info_from_crawler(url) #暂时抓img_url, price, category信息 sku_id已知
-            if not product_info:
+            try:
+                product_info = get_info_from_crawler(url, merchantName) #暂时抓img_url, price, category信息 sku_id已知
+            except:
                 status = 23 #严重bug, 抓取页面失败
                 return status
-            productId = self.insert_into_products(product_info[0], product_info[1], sku_id)
+            productId = self.insert_into_products(product_info[0], product_info[1], product_info[2], url, merchantId, sku_id)
             if not productId:
                 status = 29 #插入products表失败
-                return
+                return status
         else:
             self.set_products_ctStatus(productId)
-            product_info = self.get_info_from_products(productId)
+            product_info = self.get_info_from_products(productId) #获取的字段 name, category_id, price, img_url
             if not product_info:
                 status = 19 #严重bug, 已知id却没有查出products表中的详细情况
                 return status
@@ -112,7 +96,12 @@ class Processer:
             detail_info = list(product_info) #detail_info = list(product_info).append(merchantId)错误写法
             detail_info.append(merchantId)#detail_info.append(merchantId).append(productId)
             detail_info.append(productId)
-            self.insert_into_product_scores(detail_info)
+            detail_info.append(url)
+            try:
+                self.insert_into_product_scores(detail_info)
+            except:
+                status = 31
+                return status
         else:
             #暂时不考虑不更新价格, 只更新ct_status
             self.set_product_scores_ctStatus(productId)
@@ -134,7 +123,7 @@ class Processer:
         return result
     
     def get_info_from_products(self, productId):
-        sql = """select name, category_id, price from products where id=%s"""
+        sql = """select name, category_id, price, img_url from products where id=%s"""
         self.db.cursor.execute(sql, productId)
         try:
             result = self.db.cursor.fetchone()
@@ -146,23 +135,10 @@ class Processer:
         sql = """update products set ct_status=4 where id=%s"""
         self.db.cursor.execute(sql, productId)
     
-    def get_info_from_crawler(self, url, merchantId, merchantName):
-        content = self.fetch_page_content(url)
-        doc = PyQuery(content)
-        if merchantName == 'dx':
-            name = doc("h1 > span#headline").text()
-            price = doc("span#price").text()
-#             categoryList = []
-#             categoryNodeList = doc("div.wrapper > div.position > a")
-#             for node in categoryNodeList:
-#                 nodeQ = PyQuery(node)
-#                 categoryList.append(nodeQ.text().strip()) if nodeQ.text().strip() else """do nothing"""
-        return [name, price]
-    
-    def insert_into_products(self, name, price, merchant_id, sku_id):
-        sql1 = """insert into products (name, price, merchant_id, sku_id, ct_status) values (%s, %s, %s, %s, 4)"""
+    def insert_into_products(self, name, price, img_url, product_url, merchant_id, sku_id):
+        sql1 = """insert into products (name, price, merchant_id, img_url, url, sku_id, ct_status) values (%s, %s, %s, %s, %s, %s, 4)"""
         sql2 = """select id from products where merchant_id=%s and sku_id=%s"""
-        self.db.cursor.execute(sql1, (name, price, merchant_id, sku_id))
+        self.db.cursor.execute(sql1, (name, price, merchant_id, img_url, product_url, sku_id))
         self.db.cursor.execute(sql2, (merchant_id, sku_id))
         try:
             result = self.db.cursor.fetchone()[0]
@@ -170,12 +146,6 @@ class Processer:
             result = ''
         return result
 
-    def fetch_page_content(self, url):
-        h = httplib2.Http()
-        response, content = h.request(url)
-        if response.status == 200:
-            return content
-    
     def check_in_product_scores(self, productId):
         sql = """select product_id from product_scores where product_id=%s"""
         self.db.cursor.execute(sql, productId)
@@ -183,15 +153,19 @@ class Processer:
             result = self.db.cursor.fetchone()[0]
         except:
             result = None
-        return True if result else False
-    
-    def insert_into_product_scores(self, product_info_list):
-        sql1 = """insert into product_scores (product_name, category_id, price, merchant_id, product_id, ct_status, score) values (%s, %s, %s, %s, %s, 4, 0.08)"""
-        sql2 = """insert into product_scores (product_name, price, merchant_id, product_id, ct_status, score) values (%s, %s, %s, %s, 4, 0.08)"""
-        product_info_list[2] = float(extractNum(product_info_list[2])) #scores表中price是double
-        if len(product_info_list) == 5:
+        return True if result else False      
+                                                            #[name, price, img_url, merchantId, productId, url]
+    def insert_into_product_scores(self, product_info_list):#[name, category_id, price, img_url, merchantId, productId, url]
+        day = datetime.date.today().strftime("%Y-%m-%d")
+        sql1 = """insert into product_scores (product_name, category_id, price, img_url, merchant_id, product_id, product_url, ct_status, score, calc_date, score_type) values (%s, %s, %s, %s, %s, %s, %s, 4, 0.08, %s, 'HUMAN_SET')"""
+        sql2 = """insert into product_scores (product_name, price, img_url, merchant_id, product_id, product_url, ct_status, score, calc_date, score_type) values (%s, %s, %s, %s, %s, %s, 4, 0.08, %s, 'HUMAN_SET')"""
+        if len(product_info_list) == 7:
+            product_info_list[2] = float(extractNum(product_info_list[2])) #scores表中price是double
+            product_info_list.append(day)
             self.db.cursor.execute(sql1, product_info_list)
-        if len(product_info_list) == 4:
+        if len(product_info_list) == 6:
+            product_info_list[1] = float(extractNum(product_info_list[1])) #scores表中price是double
+            product_info_list.append(day)
             self.db.cursor.execute(sql2, product_info_list)
 
     def set_product_scores_ctStatus(self, productId):
@@ -213,6 +187,12 @@ class Processer:
 
 processer = Processer()
 
+#在本端进行测试
+def test():
+    processer.process(["123456", "http://www.ebay.com/itm/Genuine-Shark-New-Silver-Case-Date-Day-Leather-Quartz-Sport-Wrist-Watch-/350794635597"])
+
+test()
+
 def process(info):
     """
        info: 包含 litb_id 和 竞争对手  url
@@ -220,14 +200,10 @@ def process(info):
     litb_id, url = info.split(';')[0].strip(), info.split(';')[1].strip()
     print u'兰亭id是:', litb_id
     print u'对手url是:', url
-    #s1: 提取出商户和sku_id
-    #s2: 抓取价格信息
-    #s3: 保存关联关系到product_matches表
-    #s4: 保存商品信息到products表和product_scores表
     status = processer.process([litb_id, url])
     if status in [3, 5]:
         return json.dumps({'status': 0, 'reason': '新的商户不能支持'})
-    elif status in [7]:
+    elif status in [7, 23, 31]:
         return json.dumps({'status': 0, 'reason': '已有商户操作异常'})
     else:
         return json.dumps({'status': 1, 'reason': ''})

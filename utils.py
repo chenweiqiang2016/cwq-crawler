@@ -42,7 +42,7 @@ def extractNum(strText):
     '''
     if not strText:
         return 0;
-    results = re.findall('[\d, \.]+', strText) #匹配数字
+    results = re.findall('\d[\d, \.]*', strText) #匹配数字, 前面加一个\d
     if results:
         result = re.sub(',', '', re.sub(' ', '', results[0])) #去除空格和逗号分隔
         if re.findall('[\.]', result): #有小数点的进行浮点数, 没有的话整理成整数

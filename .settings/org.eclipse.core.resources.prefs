@@ -9,5 +9,6 @@ encoding/crawler2.py=utf-8
 encoding/rosewholesale.py=utf-8
 encoding/shein.py=utf-8
 encoding/utils.py=utf-8
+encoding/various_merchants.py=utf-8
 encoding/vvic.py=utf-8
 encoding/zaful.py=utf-8
