@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 """
-        支持的商户有: dx, focalprice
+        支持的商户有: dx, everbuying
+    部分支持的商户有: amazon ebay aliexpress focalprice
 """
 from pyquery import PyQuery
 import re
@@ -28,6 +29,9 @@ def extract(url):
         sku_id = get_sku(url, '/(\d+)$')
         if not sku_id:
             sku_id = get_sku(url, '/(\d+)[\?]')
+    #http://www.everbuying.net/product1121032.html
+    elif url.find("everbuying") > 0:
+        sku_id = get_sku(url, 'product(\d+)\.html')
     return sku_id
 
 def get_sku(url, pattern):
@@ -46,14 +50,18 @@ def extractMerchantName(url):
         return "AMZ99"
     elif url.find("ebay") > 0:
         return "EBY99"
+    elif url.find("everbuying") > 0:
+        return "everbuying"
     
 def get_info_from_crawler(url, merchantName):
     content = fetch_page_content(url)
     doc = PyQuery(content)
+    categoryList = []
     if merchantName == 'dx':
         name = doc("h1 > span#headline").text()
         price = doc("span#price").text()
         img_url = "http:" + doc("div#midPicBox > a#product-large-image > img").attr("src") if doc("div#midPicBox > a#product-large-image > img").attr("src") else None
+        categoryList = get_categoryList(doc, 'dx')
     elif merchantName == 'focalprice':
         name = doc("h1#productName").text()
         price = doc("span#unit_price").text()
@@ -70,17 +78,35 @@ def get_info_from_crawler(url, merchantName):
         name = doc('h1#itemTitle').remove('span').text()
         price = doc('span#mm-saleDscPrc').text()
         img_url = doc('img#icImg').attr('src')
-    return [name, price, img_url]
+    elif merchantName == 'everbuying':
+        name = doc('h1[itemprop="name"]').remove('span').text()
+        price = doc('span#unit_price2').text()
+        img_url = doc('div.jqzoom > ul > li > img').eq(0).attr('src')
+        categoryList = get_categoryList(doc, 'everbuying')
+    return categoryList, [name, price, img_url]
+
+def get_categoryList(doc, merchantName):
+    categoryList = []
+    if merchantName=='dx':
+        categoryNodeList = doc("div.wrapper > div.position > a")
+    elif merchantName=="everbuying":
+        categoryNodeList = doc('div.classmenu > span > a > span')
+        categoryNodeList = categoryNodeList[1:] #第一个为Home
+    #通用提取结构
+    for node in categoryNodeList:
+        nodeQ = PyQuery(node)
+        categoryList.append(nodeQ.text().strip()) if nodeQ.text().strip() else """do nothing"""
+    #检查一下, 把空的去掉
+    for item in categoryList:
+        if item == '':
+            categoryList.remove(item)
+    #只取三级品类
+    if len(categoryList) > 3:
+        categoryList = categoryList[:3]
+    return categoryList
 
 def fetch_page_content(url):
     h = httplib2.Http()
     response, content = h.request(url)
     if response.status == 200:
         return content
-    
-#==========================================================================================
-#             categoryList = []
-#             categoryNodeList = doc("div.wrapper > div.position > a")
-#             for node in categoryNodeList:
-#                 nodeQ = PyQuery(node)
-#                 categoryList.append(nodeQ.text().strip()) if nodeQ.text().strip() else """do nothing"""

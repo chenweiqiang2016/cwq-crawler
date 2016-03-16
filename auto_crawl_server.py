@@ -76,11 +76,19 @@ class Processer:
                                              进行抓取, 插入
             """
             try:
-                product_info = get_info_from_crawler(url, merchantName) #暂时抓img_url, price, category信息 sku_id已知
+                categoryList, product_info = get_info_from_crawler(url, merchantName) #暂时抓img_url, price, category信息 sku_id已知
             except:
                 status = 23 #严重bug, 抓取页面失败
                 return status
             productId = self.insert_into_products(product_info[0], product_info[1], product_info[2], url, merchantId, sku_id)
+            #获取category_id
+            try:
+                category_id = None #不知道这一行可不可以省略
+                category_id = self.get_category_id_from_categoryList(categoryList, merchantId)
+            except:
+                status = status * 91 #这个异常是可以跳过
+            self.update_category_id(productId, category_id)
+            product_info.insert(1, category_id) #增加category_id字段
             if not productId:
                 status = 29 #插入products表失败
                 return status
@@ -102,6 +110,8 @@ class Processer:
             except:
                 status = 31
                 return status
+            #新插入的需要增加category_path
+            self.update_category_path(productId, detail_info[1])
         else:
             #暂时不考虑不更新价格, 只更新ct_status
             self.set_product_scores_ctStatus(productId)
@@ -145,6 +155,54 @@ class Processer:
         except:
             result = ''
         return result
+    
+    def get_category_id_from_categoryList(self, aList, merchant_id):
+        sql1 = """select id from categories where merchant_id=%s and name=%s and parent_id=%s and level=%s"""
+        sql2 = """insert into categories(name, merchant_id, parent_id, level) values (%s, %s, %s, %s)"""
+        sql3 = """update categories set level1_category_id=%s where id=%s"""
+        if not aList:
+            return None
+        if aList[0]:
+            self.db.cursor.execute(sql1, (merchant_id, aList[0], 0, 1))
+            result = self.db.cursor.fetchone()
+            if result:
+                level1 = result[0]
+            else:
+                self.db.cursor.execute(sql2, (aList[0], merchant_id, 0, 1))
+                self.db.cursor.execute(sql1, (merchant_id, aList[0], 0, 1)) #再执行一遍
+                level1 = self.db.cursor.fetchone()[0]
+                self.db.cursor.execute(sql3, (level1, level1))
+        if aList[1]:
+            self.db.cursor.execute(sql1, (merchant_id, aList[1], level1, 2))
+            result = self.db.cursor.fetchone()
+            if result:
+                level2 = result[0]
+            else:
+                self.db.cursor.execute(sql2, (aList[1], merchant_id, level1, 2))
+                self.db.cursor.execute(sql1, (merchant_id, aList[1], level1, 2)) #再执行一遍
+                level2 = self.db.cursor.fetchone()[0]
+                self.db.cursor.execute(sql3, (level1, level2))
+        if aList[2]:
+            self.db.cursor.execute(sql1, (merchant_id, aList[2], level2, 3))
+            result = self.db.cursor.fetchone()
+            if result:
+                level3 = result[0]
+            else:
+                self.db.cursor.execute(sql2, (aList[2], merchant_id, level2, 3))
+                self.db.cursor.execute(sql1, (merchant_id, aList[2], level2, 3)) #再执行一遍
+                level3 = self.db.cursor.fetchone()[0]
+                self.db.cursor.execute(sql3, (level1, level3))
+        if len(aList) == 3:
+            return level3
+        elif len(aList) == 2:
+            return level2
+        else:
+            return level1
+            
+    def update_category_id(self, productId, category_id):
+        sql = """update products set category_id=%s where id=%s"""
+        if category_id:
+            self.db.cursor.execute(sql, (category_id, productId))
 
     def check_in_product_scores(self, productId):
         sql = """select product_id from product_scores where product_id=%s"""
@@ -154,19 +212,32 @@ class Processer:
         except:
             result = None
         return True if result else False      
-                                                            #[name, price, img_url, merchantId, productId, url]
-    def insert_into_product_scores(self, product_info_list):#[name, category_id, price, img_url, merchantId, productId, url]
+                                                            
+    def insert_into_product_scores(self, product_info_list):
+        #product_info_list: [name, category_id, price, img_url, merchantId, productId, url]
         day = datetime.date.today().strftime("%Y-%m-%d")
-        sql1 = """insert into product_scores (product_name, category_id, price, img_url, merchant_id, product_id, product_url, ct_status, score, calc_date, score_type) values (%s, %s, %s, %s, %s, %s, %s, 4, 0.08, %s, 'HUMAN_SET')"""
-        sql2 = """insert into product_scores (product_name, price, img_url, merchant_id, product_id, product_url, ct_status, score, calc_date, score_type) values (%s, %s, %s, %s, %s, %s, 4, 0.08, %s, 'HUMAN_SET')"""
-        if len(product_info_list) == 7:
-            product_info_list[2] = float(extractNum(product_info_list[2])) #scores表中price是double
-            product_info_list.append(day)
-            self.db.cursor.execute(sql1, product_info_list)
-        if len(product_info_list) == 6:
-            product_info_list[1] = float(extractNum(product_info_list[1])) #scores表中price是double
-            product_info_list.append(day)
-            self.db.cursor.execute(sql2, product_info_list)
+        sql = """insert into product_scores (product_name, category_id, price, img_url, merchant_id, product_id, product_url, ct_status, score, calc_date, score_type) values (%s, %s, %s, %s, %s, %s, %s, 4, 0.08, %s, 'HUMAN_SET')"""
+        product_info_list[2] = float(extractNum(product_info_list[2])) #scores表中price是double
+        product_info_list.append(day)
+        self.db.cursor.execute(sql, product_info_list)
+    
+    def update_category_path(self, productId, category_id):
+        if not category_id:
+            return ''
+        categoryNames = []
+        sql="""select parent_id, name from categories where id=%s"""
+        current_id = category_id
+        while True:
+            self.db.cursor.execute(sql, current_id)
+            parent_id, name = self.db.cursor.fetchone()
+            categoryNames.insert(0, name)
+            current_id = parent_id
+            if parent_id==0:
+                break
+        category_path = ' > '.join(categoryNames)
+        #执行更新
+        sql2 = """update product_scores set category_path=%s where product_id=%s"""
+        self.db.cursor.execute(sql2, (category_path, productId))
 
     def set_product_scores_ctStatus(self, productId):
         sql = """update product_scores set ct_status=4 where product_id=%s"""
@@ -189,7 +260,7 @@ processer = Processer()
 
 #在本端进行测试
 def test():
-    processer.process(["123456", "http://www.ebay.com/itm/Genuine-Shark-New-Silver-Case-Date-Day-Leather-Quartz-Sport-Wrist-Watch-/350794635597"])
+    processer.process(["123456", "http://www.everbuying.net/product1131393.html"])
 
 # test()
 
@@ -210,7 +281,8 @@ def process(info):
     
 
 def on_request(ch, method, props, body):
-    
+
+#每条记录开关一次数据库的代价太大, 不可以
 #     processer.db = Db()
 
     print(" [.] process(%s)" % body)
