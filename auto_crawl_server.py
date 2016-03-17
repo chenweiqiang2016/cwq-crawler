@@ -13,6 +13,7 @@ from various_merchants import extract, extractMerchantName, get_info_from_crawle
 
 credentials = pika.PlainCredentials('chenweiqiang', '123456')
 parameters = pika.ConnectionParameters('192.168.66.24', 5672, '/', credentials)
+#parameters = pika.ConnectionParameters("localhost")
 connection = pika.BlockingConnection(parameters)
 
 channel = connection.channel()
@@ -162,7 +163,7 @@ class Processer:
         sql3 = """update categories set level1_category_id=%s where id=%s"""
         if not aList:
             return None
-        if aList[0]:
+        if len(aList) > 0:
             self.db.cursor.execute(sql1, (merchant_id, aList[0], 0, 1))
             result = self.db.cursor.fetchone()
             if result:
@@ -172,7 +173,7 @@ class Processer:
                 self.db.cursor.execute(sql1, (merchant_id, aList[0], 0, 1)) #再执行一遍
                 level1 = self.db.cursor.fetchone()[0]
                 self.db.cursor.execute(sql3, (level1, level1))
-        if aList[1]:
+        if len(aList) > 1:
             self.db.cursor.execute(sql1, (merchant_id, aList[1], level1, 2))
             result = self.db.cursor.fetchone()
             if result:
@@ -182,7 +183,7 @@ class Processer:
                 self.db.cursor.execute(sql1, (merchant_id, aList[1], level1, 2)) #再执行一遍
                 level2 = self.db.cursor.fetchone()[0]
                 self.db.cursor.execute(sql3, (level1, level2))
-        if aList[2]:
+        if len(aList) > 2:
             self.db.cursor.execute(sql1, (merchant_id, aList[2], level2, 3))
             result = self.db.cursor.fetchone()
             if result:
@@ -268,6 +269,14 @@ def process(info):
     """
        info: 包含 litb_id 和 竞争对手  url
     """
+    #每一次调用Java接口, 开关一次数据库连接
+    if info=='start':
+        processer.db = Db()
+        return "Get the cmd to open db..."
+    if info=='end':
+        processer.db.connect.close()
+        return 'Get the cmd to close db...'
+    #常规数据
     litb_id, url = info.split(';')[0].strip(), info.split(';')[1].strip()
     print u'兰亭id是:', litb_id
     print u'对手url是:', url
