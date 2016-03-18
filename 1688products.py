@@ -15,7 +15,7 @@ from utils import extractNum
 class Product:
     def __init__(self):
         self.attrs = {}
-        self.attrs['category'] = "窗帘";
+        self.attrs['category'] = "厨房小工具";
         
     def __getitem__(self, key):
         if self.attrs.has_key(key):
@@ -118,7 +118,8 @@ def main(start_url):
     print "WELL DOME"
 
 if __name__ == '__main__':
+    start_url="https://ye.1688.com/chanpin/-b3f8b7bfd0a1b9a4bedf.htm?spm=a360i.cyd0017.0.0.ZJgvIg&homeType=1&analy=n&sortType=MLR_PAY_COUNT&sortOrder=DESC#filt"
     #start_url = "https://ye.1688.com/chanpin/-b3e8ceefd2c2b7fe.htm?spm=a360i.cyd0017.0.0.zk3ee8&homeType=1&analy=n&newProduct=1&sortType=MLR_PAY_COUNT&sortOrder=DESC#filt"
-    start_url = "http://ye.1688.com/chanpin/-b4b0c1b1.htm?spm=a360i.cyd0017.0.0.Wl5YRp&homeType=1&analy=n&sortType=MLR_PAY_COUNT&sortOrder=DESC#filt"
+    #start_url = "http://ye.1688.com/chanpin/-b4b0c1b1.htm?spm=a360i.cyd0017.0.0.Wl5YRp&homeType=1&analy=n&sortType=MLR_PAY_COUNT&sortOrder=DESC#filt"
     main(start_url)
     

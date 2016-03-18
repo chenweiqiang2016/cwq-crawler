@@ -13,7 +13,7 @@ from utils import extractNum
 class Merchant:
     def __init__(self):
         self.attrs = {}
-        self.attrs['category'] = "窗帘";
+        self.attrs['category'] = "厨房小工具";
         
     def __getitem__(self, key):
         if self.attrs.has_key(key):
@@ -157,7 +157,8 @@ def main(start_url):
     print "WELL DOME"
 
 if __name__ == '__main__':
-    start_url = "http://ye.1688.com/qiye/-b4b0c1b1.htm?spm=a360i.cyd0018.0.0.30HwlG&homeType=1&sortType=SALE_QUANTITY#filt"
+    start_url="https://ye.1688.com/qiye/-b3f8b7bfd0a1b9a4bedf.htm?spm=a360i.cyd0018.0.0.RMoqZC&homeType=1&sortType=SALE_QUANTITY#filt"
+    #start_url = "http://ye.1688.com/qiye/-b4b0c1b1.htm?spm=a360i.cyd0018.0.0.30HwlG&homeType=1&sortType=SALE_QUANTITY#filt"
     #start_url = "https://ye.1688.com/qiye/-b3e8ceefd2c2b7fe.htm?spm=a360i.cyd0018.0.0.Tm8FDX&homeType=1&sortType=SALE_QUANTITY#filt"
     main(start_url)
     
