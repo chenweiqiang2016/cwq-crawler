@@ -1,5 +1,4 @@
 eclipse.preferences.version=1
-encoding/1688pics.py=utf-8
 encoding/1688products.py=utf-8
 encoding/1688suppliers.py=utf-8
 encoding/auto_crawl_server.py=utf-8
@@ -8,9 +7,11 @@ encoding/bestwigoutlet.py=utf-8
 encoding/crawl_baokuanyi.py=utf-8
 encoding/crawl_vvic.py=utf-8
 encoding/crawler2.py=utf-8
+encoding/pics_1688.py=utf-8
 encoding/rosewholesale.py=utf-8
 encoding/shein.py=utf-8
 encoding/utils.py=utf-8
 encoding/various_merchants.py=utf-8
 encoding/vvic.py=utf-8
+encoding/weibo_crawl.py=utf-8
 encoding/zaful.py=utf-8

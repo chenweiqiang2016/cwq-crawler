@@ -42,19 +42,20 @@ def download(img_url, sku_id, index):
     f = open(path,'wb')  
     f.write(conn.read())  
     f.close()
-
-wb = xlrd.open_workbook("1688products-result.xls")
-ws = wb.sheets()[0]
-headers = ws.row_values(0)
-url_index = headers.index("product_url")
-for row in range(1, ws.nrows):
-    print "(Downloading " + str(row) + " of " + str(ws.nrows-1) + ")",
-    product_url = ws.cell(row, url_index).value
-    sku_id = extract_skuId(product_url)
-    print sku_id, "[" + product_url + "]" 
-    if not sku_id:
-        continue
-    content = fetch_page_content(product_url)
-    img_urls = get_img_urls(content)
-    for index, img_url in enumerate(img_urls):
-        download(img_url, sku_id, index)
+    
+if __name__ == '__main__':
+    wb = xlrd.open_workbook("1688products-result.xls")
+    ws = wb.sheets()[0]
+    headers = ws.row_values(0)
+    url_index = headers.index("product_url")
+    for row in range(1, ws.nrows):
+        print "(Downloading " + str(row) + " of " + str(ws.nrows-1) + ")",
+        product_url = ws.cell(row, url_index).value
+        sku_id = extract_skuId(product_url)
+        print sku_id, "[" + product_url + "]" 
+        if not sku_id:
+            continue
+        content = fetch_page_content(product_url)
+        img_urls = get_img_urls(content)
+        for index, img_url in enumerate(img_urls):
+            download(img_url, sku_id, index)
