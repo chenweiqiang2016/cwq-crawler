@@ -1,7 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import re
+import httplib2
+import time
+import random
 from ConfigParser import ConfigParser
+
+'''此处fetchPageWithUrl使用的是'GBK'解码
+'''
 
 
 class KindConfigParser(ConfigParser):
@@ -42,7 +48,7 @@ def extractNum(strText):
     '''
     if not strText:
         return 0;
-    results = re.findall('[\d, \.]+', strText) #匹配数字
+    results = re.findall('\d[\d, \.]*', strText) #匹配数字, 前面加一个\d
     if results:
         result = re.sub(',', '', re.sub(' ', '', results[0])) #去除空格和逗号分隔
         if re.findall('[\.]', result): #有小数点的进行浮点数, 没有的话整理成整数
@@ -87,6 +93,13 @@ def clean_html(content, decode="utf-8"):
     #这个操作非常关键, 否则PyQuery得不出正确的结果
     content = unicode(content, decode)
     return content
+
+def fetchPageWithUrl(url):
+    time.sleep(random.uniform(0, 2))
+    h = httplib2.Http()
+    response, content = h.request(url)
+    if response.status == 200:
+        return unicode(content, 'GBK')
 
 if __name__ == '__main__':
     print extractNum('cwq7. 23')

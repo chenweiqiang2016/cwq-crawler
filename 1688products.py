@@ -2,6 +2,7 @@
 
 # 2016/3/3 增加字段: tag star reviews total_sales
 # 可能遭到屏蔽 只能适当时候运行
+# TODO 解决错误: raise socket.error, msg  socket.error: [Errno 10060]
 
 import httplib2
 import uuid
@@ -10,11 +11,12 @@ import random
 import time
 from pyquery import PyQuery
 from utils import extractNum
+from pics_1688 import get_img_urls
 
 class Product:
     def __init__(self):
         self.attrs = {}
-        self.attrs['category'] = "窗帘";
+        self.attrs['category'] = "厨房小工具";
         
     def __getitem__(self, key):
         if self.attrs.has_key(key):
@@ -72,11 +74,13 @@ def parseProductPage(product):
        #product['delivery'] = doc("div.cost-entries-type > p > em.value").text() 运费JS动态 解决不了
        product['reviews'] = doc('p.satisfaction-number > a > em.value').text()
        product['star'] = doc('p.star-level > i').attr("class")
-       product['total_sales'] = doc('p.bargain-number > a > em.value').text() 
+       product['total_sales'] = doc('p.bargain-number > a > em.value').text()
+       url_list = get_img_urls(content)
+       product['img_urls'] = ', '.join(url_list)
     return product
 
 def persistance(objList):
-    fields = ['category', 'name', 'price', 'img_url', 'product_url', 'city', 'merchant', 'merchant_url', 'monthly_sales', 'tags', 'reviews', 'star', 'total_sales']
+    fields = ['category', 'name', 'price', 'img_url', 'product_url', 'city', 'merchant', 'merchant_url', 'monthly_sales', 'tags', 'reviews', 'star', 'total_sales', 'img_urls']
     first_line = '\t'.join(fields) + '\n'
     fw = open(os.path.basename(__file__).split('.')[0] + "-result.csv", 'w')
     fw.write(first_line)
@@ -117,7 +121,7 @@ def main(start_url):
     print "WELL DOME"
 
 if __name__ == '__main__':
+    start_url="https://ye.1688.com/chanpin/-b3f8b7bfd0a1b9a4bedf.htm?spm=a360i.cyd0017.0.0.ZJgvIg&homeType=1&analy=n&sortType=MLR_PAY_COUNT&sortOrder=DESC#filt"
     #start_url = "https://ye.1688.com/chanpin/-b3e8ceefd2c2b7fe.htm?spm=a360i.cyd0017.0.0.zk3ee8&homeType=1&analy=n&newProduct=1&sortType=MLR_PAY_COUNT&sortOrder=DESC#filt"
-    start_url = "http://ye.1688.com/chanpin/-b4b0c1b1.htm?spm=a360i.cyd0017.0.0.Wl5YRp&homeType=1&analy=n&sortType=MLR_PAY_COUNT&sortOrder=DESC#filt"
+    #start_url = "http://ye.1688.com/chanpin/-b4b0c1b1.htm?spm=a360i.cyd0017.0.0.Wl5YRp&homeType=1&analy=n&sortType=MLR_PAY_COUNT&sortOrder=DESC#filt"
     main(start_url)
-    
