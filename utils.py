@@ -1,7 +1,13 @@
 # -*- coding: utf-8 -*-
 
 import re
+import httplib2
+import time
+import random
 from ConfigParser import ConfigParser
+
+'''此处fetchPageWithUrl使用的是'GBK'解码
+'''
 
 
 class KindConfigParser(ConfigParser):
@@ -87,6 +93,13 @@ def clean_html(content, decode="utf-8"):
     #这个操作非常关键, 否则PyQuery得不出正确的结果
     content = unicode(content, decode)
     return content
+
+def fetchPageWithUrl(url):
+    time.sleep(random.uniform(0, 2))
+    h = httplib2.Http()
+    response, content = h.request(url)
+    if response.status == 200:
+        return unicode(content, 'GBK')
 
 if __name__ == '__main__':
     print extractNum('cwq7. 23')

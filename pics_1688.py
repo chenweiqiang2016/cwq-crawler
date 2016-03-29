@@ -6,7 +6,9 @@ import xlrd
 import re
 import urllib
 import httplib2
+import json
 from pyquery import PyQuery
+from utils import fetchPageWithUrl
 
 def extract_skuId(url):
     try:
@@ -33,6 +35,24 @@ def get_img_urls(content):
         if url.find('60x60') > 0:
             url=url.replace('60x60','400x400')
             url_list.append(url)
+    needDescImg = True
+    if needDescImg:
+        link_url = doc('div#desc-lazyload-container').attr('data-tfs-url')
+        desc_content = fetchPageWithUrl(link_url)
+        #懒惰匹配模式
+        imgNodes = re.findall('<img[^<>]*>.*?', desc_content)
+        #desc_content = re.sub('var[\s]*offer_details[\s]*=[\s]*', '', desc_content)
+        for node in imgNodes:
+            nodeQ = PyQuery(node)
+            desc_url = nodeQ('img').attr('src')
+            if desc_url:
+                desc_url = desc_url.replace('\\"', '')
+            if not desc_url:
+                continue
+            if 'gif' in desc_url: #gif图片不要
+                continue
+            #if '//gd' in desc_url or '/2015/' in desc_url:
+            url_list.append(desc_url)
     return url_list
     
 
