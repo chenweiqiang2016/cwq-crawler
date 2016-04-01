@@ -9,6 +9,8 @@ import uuid
 import os
 import random
 import time
+import sys
+import datetime
 from pyquery import PyQuery
 from utils import extractNum
 from pics_1688 import get_img_urls
@@ -16,7 +18,7 @@ from pics_1688 import get_img_urls
 class Product:
     def __init__(self):
         self.attrs = {}
-        self.attrs['category'] = "厨房小工具";
+        #self.attrs['category'] = "水龙头";
         
     def __getitem__(self, key):
         if self.attrs.has_key(key):
@@ -52,7 +54,11 @@ def parsePage(content):
         p['name'] = nodeQ('dd.description > a').text()
         p['price'] = nodeQ('dd.price > span.value').text()
         p['img_url'] = "http:" + nodeQ('dt.img-vertical > a > img').attr('data-lazyload-src')
-        p['product_url'] = "http:" + nodeQ('dt.img-vertical > a').attr('href')
+        url = nodeQ('dt.img-vertical > a').attr('href')
+        if url.find('http') == 0:
+            p['product_url'] = url
+        else:    
+            p['product_url'] = "http:" + nodeQ('dt.img-vertical > a').attr('href')
         p['city'] = nodeQ('dd.origin > a').text()
         p['merchant'] =  nodeQ('dd.company').text()
         p['merchant_url'] = "http:" + nodeQ('dd.company > a').eq(-1).attr('href')
@@ -64,7 +70,7 @@ def parsePage(content):
         #return productList #测试
     return productList
 
-def parseProductPage(product):
+def parseProductPage(product, need_img_urls=False):
     """进入商品详情页, 抓取四个新字段
        delivery reviews star total_sales
     """
@@ -75,14 +81,17 @@ def parseProductPage(product):
        product['reviews'] = doc('p.satisfaction-number > a > em.value').text()
        product['star'] = doc('p.star-level > i').attr("class")
        product['total_sales'] = doc('p.bargain-number > a > em.value').text()
-       url_list = get_img_urls(content)
-       product['img_urls'] = ', '.join(url_list)
+       if need_img_urls:
+           url_list = get_img_urls(content)
+           product['img_urls'] = ', '.join(url_list)
+       else:
+           product['img_urls'] = ''
     return product
 
-def persistance(objList):
+def persistance(objList, category):
     fields = ['category', 'name', 'price', 'img_url', 'product_url', 'city', 'merchant', 'merchant_url', 'monthly_sales', 'tags', 'reviews', 'star', 'total_sales', 'img_urls']
     first_line = '\t'.join(fields) + '\n'
-    fw = open(os.path.basename(__file__).split('.')[0] + "-result.csv", 'w')
+    fw = open(category + '_' + str(datetime.date.today()) + '_' + os.path.basename(__file__).split('.')[0] + "-result.csv", 'w')
     fw.write(first_line)
     for obj in objList:
         datas = []
@@ -103,25 +112,38 @@ def parseNextPageUrl(content):
     if doc('div.page-bottom > a.page-next').attr('href'):
         return "http:" + doc('div.page-bottom > a.page-next').attr('href')
 
-def main(start_url):
+def main(start_url, limit):
     """完成各个方法的调度"""
     url = start_url
-    LIMIT = 5 #抓5个页面
+    LIMIT = limit #LIMIT = 5 #抓5个页面
     count = 1
-    total_merchants = []
+    total_products = []
     while count <= LIMIT:
         content = fetchContent(url)
         mList = parsePage(content)
-        total_merchants.extend(mList)
+        total_products.extend(mList)
         url = parseNextPageUrl(content)
         count += 1
         if not url:
-            break;
-    persistance(total_merchants)
+            break
+    #以下三行的修改是为了其他代码的调用
+    return total_products
+    #persistance(total_merchants)
+    #print "WELL DOME"
+
+def set_categories(products, category):
+    for p in products:
+        p['category'] = category
+        
+def main_method_p(category, start_url):
+    total_products = main(start_url, 5)
+    set_categories(total_products, category)
+    persistance(total_products, category)
     print "WELL DOME"
 
 if __name__ == '__main__':
-    start_url="https://ye.1688.com/chanpin/-b3f8b7bfd0a1b9a4bedf.htm?spm=a360i.cyd0017.0.0.ZJgvIg&homeType=1&analy=n&sortType=MLR_PAY_COUNT&sortOrder=DESC#filt"
+    category = sys.argv[1]
+    start_url = sys.argv[2]
+    #start_url="https://ye.1688.com/chanpin/-d4b0d2d5b9e0b8c8.htm?spm=a360i.cyd0017.0.0.XQ4lUU&homeType=1&analy=n&newProduct=1&sortType=MLR_PAY_COUNT&sortOrder=DESC#filt"
     #start_url = "https://ye.1688.com/chanpin/-b3e8ceefd2c2b7fe.htm?spm=a360i.cyd0017.0.0.zk3ee8&homeType=1&analy=n&newProduct=1&sortType=MLR_PAY_COUNT&sortOrder=DESC#filt"
     #start_url = "http://ye.1688.com/chanpin/-b4b0c1b1.htm?spm=a360i.cyd0017.0.0.Wl5YRp&homeType=1&analy=n&sortType=MLR_PAY_COUNT&sortOrder=DESC#filt"
-    main(start_url)

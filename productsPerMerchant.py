@@ -57,7 +57,7 @@ def crawlProductsByCategory(cate_list, ws, merchant_info):
             print e
             print 'category', (index + 1), "of", len(cate_list), "failed!"
 
-def crawlProducts(start_url):
+def crawlProducts(start_url, limit=999):
     current_url = start_url
     products = []
     page_count = 1
@@ -89,9 +89,20 @@ def crawlProducts(start_url):
         next_url = parse_next_url(doc)
         if not next_url:
             break
-        current_url = next_url
+        current_url = process_url(next_url)
         page_count += 1
+        if page_count > limit:
+            break
     return products
+
+def process_url(url):
+    if url.find("http") == 0:
+        return url
+    elif url.find("://") == 0:
+        return "http" + url
+    elif url.find("//") == 0:
+        return "http:" + url
+    return url
 
 def parse_next_url(contentQ):
     if contentQ('li.pagination > a.next-disabled'):
