@@ -48,7 +48,7 @@ def manual_crawl():
 'https://ye.1688.com/qiye/-b0dabcfe.htm?spm=a360i.cyd0018.0.0.Nqo5Wd&homeType=1&sortType=SALE_QUANTITY#filt']
 
     for index, category in enumerate(category_list):
-        if index < 4:
+        if index != 3:
             continue
         crawl_products_and_categories(category, producturl_list[index], merchanturl_list[index])
         

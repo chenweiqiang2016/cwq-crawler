@@ -31,7 +31,7 @@ def has_substr_list(str_list, file):
 
 def init_file(output_dir='E:'):
     fw = open(output_dir + "1688_" + datetime.date.today().strftime("%m-%d-%Y") + "_productInfo.csv", 'w')
-    headers = ['level1_category', 'name', 'product_url', 'img_url', 'price', 'reviews', 'sku_id']
+    headers = ['level1_category', 'name', 'product_url', 'img_url', 'price', 'reviews', 'sku_id', 'page_idx', 'num_idx', 'category_index']
     fw.write('\t'.join(headers) + '\n')
     return fw
 
@@ -58,12 +58,12 @@ def process(wf, filename):
             try:
                 crawl_url = get_crawl_url(merchant_url, keywords)
                 print crawl_url
-                productList = crawl_products(crawl_url)
+                productList = crawl_products(crawl_url) #加了page_idx, num_idx, category_index信息
                 for product in productList:
                     #headers: ['level1_category', 'name', 'product_url', 'img_url', 'price', 'reviews', 'sku_id']
                     #返回的数据: name, product_url, img_url, price, tags, sold
                     sku_id = re.findall('/([\d]+)\.html', product[1])[0]
-                    datas = [keywords, product[0], process_url(product[1]), product[2], product[3], str(product[5]), sku_id]
+                    datas = [keywords, product[0], process_url(product[1]), product[2], product[3], str(product[5]), sku_id, str(product[6]), str(product[7]), str(product[8])]
                     for idx, data in enumerate(datas):
                         if type(data) is unicode:
                             datas[idx] = data.encode('utf-8')
@@ -88,7 +88,7 @@ def crawl_products(url):
     return productList[:30] if len(productList) > 30 else productList
 
 if __name__ == '__main__':
-    xls_files = find_files("E:", ['xls', 'new'])
+    xls_files = find_files("E:/datas", ['xls', 'new'])
     
     wf = init_file()
     

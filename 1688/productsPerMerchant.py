@@ -61,6 +61,7 @@ def crawlProducts(start_url, limit=999):
     current_url = start_url
     products = []
     page_count = 1
+    total_count = 0 #全部商品数目
     while True:
         content = fetchPageWithUrl(current_url)
         print 'fetch page %s' %page_count
@@ -70,7 +71,7 @@ def crawlProducts(start_url, limit=999):
         nodeList = PyQuery(doc('div[data-tracelog-exp="wp_widget_offerhand_main_disp"]').eq(0))('ul.offer-list-row > li')#PyQuery(doc('div.common-column-150').eq(0))('ul.offer-list-row > li') #common-column-220
         if len(nodeList) < 4:
            print len(nodeList)
-        for node in nodeList:
+        for num, node in enumerate(nodeList):
             nodeQ = PyQuery(node)
             name = nodeQ('div.title > a').attr('title')
             product_url = nodeQ('div.title > a').attr('href')
@@ -85,7 +86,8 @@ def crawlProducts(start_url, limit=999):
             else:
                 tags = ''
             sold = extractNum(nodeQ('div.booked-count').text())
-            products.append([name, product_url, img_url, price, tags, sold])
+            total_count += 1
+            products.append([name, product_url, img_url, price, tags, sold, page_count, num+1, total_count])
         next_url = parse_next_url(doc)
         if not next_url:
             break
