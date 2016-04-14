@@ -1,26 +1,37 @@
 # -*- coding: utf-8 -*-
 
-# 2016/3/3 增加字段: tag star reviews total_sales
-# 可能遭到屏蔽 只能适当时候运行
-# TODO 解决错误: raise socket.error, msg  socket.error: [Errno 10060]
+# 一个初步的版本 可以抓取1688商品 存在一个访问bug L190 一个页面三次异步加载的数据没处理
 
 import httplib2
 import uuid
 import os
-import re
 import random
 import time
 import sys
+import re
 import datetime
 from pyquery import PyQuery
 from utils import extractNum
 from pics_1688 import get_img_urls
+
+
+# class OneSixDoubleEightParser:
+#     def crawlProducts(self, page):
+#         doc = PyQuery(page)
+#         
+#     
+#     def parseNextPageUrl(self, page):
+#         doc = PyQuery(page)
+#         doc('span.fui-paging-list > a.fui-next').text()
+
 
 headers = ['level1_category', 'level2_category', 'level3_category',\
            'sku_id', 'product_name', 'product_price', 'product_url',\
            'img_url', 'img_urls', 'size', 'color', 'update_time', 'store_name',\
            'store_url', 'store_address', 'qq', 'telephone', 'supplier_name',\
            'city', 'reviews', 'tags', 'total_sales', 'monthly_sales']
+
+current_url2 = 'https://s.1688.com/selloffer/-CAD6BBFAB1A3BBA4C4A4-1033986.html?spm=a262l.22849.1998916260.9.816HeX#beginPage=1&offset=9&filterP4pIds=40017869659,44043851593,527780756099,43575315465,40564214806,42969161522,44304416622,37820169122'
 
 class Product:
     def __init__(self):
@@ -36,10 +47,11 @@ class Product:
     def __setitem__(self, key, value):
         self.attrs[key] = value;
 
-def fetchContent(url, saveFile=False):
-    sleep();
+def fetchContent(url, saveFile=True, headers={}):
+#     sleep();
     h = httplib2.Http()
-    response, content = h.request(url)
+    h.follow_redirects = False
+    response, content = h.request(url, method='GET' ,headers=headers)
     print response
     content = unicode(content, "GBK")
     if saveFile:
@@ -55,32 +67,34 @@ def sleep():
 
 def parsePage(content):
     doc = PyQuery(content)
-    productNodeList = doc('div.mod-offer-list > ul.fd-clr > li')
+    productNodeList = doc('ul#sm-offer-list > li')
     productList = []
     for node in productNodeList:
         nodeQ = PyQuery(node)
-        p = Product();
-        p['product_name'] = nodeQ('dd.description > a').text()
-        p['product_price'] = nodeQ('dd.price > span.value').text()
-        p['img_url'] = "http:" + nodeQ('dt.img-vertical > a > img').attr('data-lazyload-src')
-        url = nodeQ('dt.img-vertical > a').attr('href')
+        p = Product()
+        p['product_name'] = nodeQ('a[offer-stat="title"]').text()
+        url = nodeQ('a[offer-stat="title"]').attr('href')
         if url.find('http') == 0:
             p['product_url'] = url
         else:    
-            p['product_url'] = "http:" + nodeQ('dt.img-vertical > a').attr('href')
-        print p['product_url']
-        p['sku_id'] = re.findall('/(\d+)\.htm', p['product_url'])[0]
-        print p['sku_id']
-        p['city'] = nodeQ('dd.origin > a').text()
-        p['store_name'] =  nodeQ('dd.company').text()
-        p['store_url'] = "http:" + nodeQ('dd.company > a').eq(-1).attr('href')
+            p['product_url'] = "http:" + url
+        p['product_price'] = nodeQ('span.sm-offer-priceNum').text()
+        p['img_url'] = nodeQ('a[offer-stat="pic"] > img').attr('src')
+        p['sku_id'] = nodeQ.attr('t-offer-id')
+
+        p['store_name'] =  nodeQ('a.sm-offer-companyName').text()
+        p['store_url'] = nodeQ('a.sm-offer-companyName').attr('href')
         print p['store_url']
-        p['monthly_sales']= nodeQ('dd.data > span.sold-out > em.num').text();
-        #在产品列表页面增加一个字段
-        p['tags'] = nodeQ("dd.signage > span").text()
-        parseProductPage(p, True)
-        parseStorePage(p)
-        productList.append(p)
+        p['tags'] = []
+        aList = nodeQ("div.sm-offer-subicon > a")
+        for a in aList:
+            s = PyQuery(a).attr('class')
+            if s:
+                p['tags'].append(s)
+        p['tags'] = ', '.join(p['tags'])
+#         parseProductPage(p, True)
+#         parseStorePage(p)
+#         productList.append(p)
         #return productList #测试
     return productList
 
@@ -88,8 +102,8 @@ def parseProductPage(product, need_img_urls=False):
     """进入商品详情页, 抓取四个新字段
        delivery reviews star total_sales
     """
-    if product['product_url']:
-       content = fetchContent(product['product_url'])
+    if product['sku_id']:
+       content = fetchContent("https://detail.1688.com/offer/" + product['sku_id'] + ".html")
        doc=PyQuery(content)
        #product['delivery'] = doc("div.cost-entries-type > p > em.value").text() 运费JS动态 解决不了
        product['reviews'] = doc('p.satisfaction-number > a > em.value').text()
@@ -107,20 +121,15 @@ def parseProductPage(product, need_img_urls=False):
                 product['color'] = PyQuery(doc('div.obj-content > table > tbody > tr > td')[index+1]).text()
             if tdQ.attr('class') =='de-feature' and tdQ.text().strip() == u'尺寸':
                 product['size'] = PyQuery(doc('div.obj-content > table > tbody > tr > td')[index+1]).text()
-       product['MOQ'] = extractNum(doc('tr.amount > td.ladder-1-1 > span.value').text().replace(u"≥", ""))
-       if not product['MOQ'] or product['MOQ'] == 0:
-           product['MOQ'] = extractNum(PyQuery(doc('tr.amount').remove('td.amount-title').children('td').eq(0))('span.value').text())
     return product
 
 store_info = {}
 
 def parseStorePage(product):
     store_url = product['store_url']
-#     index = store_url.find('1688.com')
-#    store_url = store_url[:index]
-    if store_url.endswith('/'):
-        store_url = store_url[:-1]
-    contact_url = store_url + '/page/contactinfo.htm'                           
+    index = store_url.find('1688.com')
+    store_url = store_url[:index]
+    contact_url = store_url + '1688.com/page/contactinfo.htm'
     if store_info.has_key(contact_url):
         for key in store_info[contact_url].keys():
             product[key] = store_info[contact_url][key]
@@ -154,12 +163,12 @@ def parseStorePage(product):
     return product
 
 def persistance(objList, category):
-    #fields = ['category', 'name', 'price', 'img_url', 'product_url', 'city', 'merchant', 'merchant_url', 'monthly_sales', 'tags', 'reviews', 'star', 'total_sales', 'img_urls']
     fields = ['level1_category', 'level2_category', 'level3_category',\
            'sku_id', 'product_name', 'product_price', 'product_url',\
            'img_url', 'img_urls', 'size', 'color', 'store_name',\
            'store_url', 'store_address', 'mobile', 'telephone', 'supplier_name',\
-           'city', 'reviews', 'tags', 'monthly_sales', 'total_sales', 'MOQ']
+           'city', 'reviews', 'tags', 'total_sales']
+
     first_line = '\t'.join(fields) + '\n'
     fw = open(category + '_' + str(datetime.date.today()) + '_' + os.path.basename(__file__).split('.')[0] + "-result.csv", 'w')
     fw.write(first_line)
@@ -178,9 +187,14 @@ def persistance(objList, category):
     fw.close()
 
 def parseNextPageUrl(content):
-    doc = PyQuery(content)
-    if doc('div.page-bottom > a.page-next').attr('href'):
-        return "http:" + doc('div.page-bottom > a.page-next').attr('href')
+    print current_url2
+    pageNum = re.findall('beginPage=(\d+)', current_url2)[0]
+    newPageNum = str(int(pageNum) + 1)
+    current_url2 = current_url2.replace('beginPage='+pageNum, 'beginPage='+newPageNum)
+    #current_url = url
+    return current_url2
+#     if doc('div.page-bottom > a.page-next').attr('href'):
+#         return "http:" + doc('div.page-bottom > a.page-next').attr('href')
 
 def main(start_url, limit):
     """完成各个方法的调度"""
@@ -189,7 +203,8 @@ def main(start_url, limit):
     count = 1
     total_products = []
     while count <= LIMIT:
-        content = fetchContent(url)
+        headers = {'Host': 's.1688.com', 'User-Agent': 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:45.0) Gecko/20100101 Firefox/45.0', 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8', 'Accept-Language': 'zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3', 'Accept-Encoding': 'gzip, deflate, br', 'Cookie': 'ali_beacon_id=106.39.48.34.1459410332938.834757.0; cna=GG2CD8ixoU0CAWonMCIb2MvX; alicnweb=touch_tb_at%3D1460514330654%7Clastlogonid%3D%25E7%2582%258E%25E9%25BE%2599%25E4%25BE%25A0%25E5%2593%25A5%25E5%2593%25A5%7Cshow_inter_tips%3Dfalse; isg=AAE822F8DD05B5600553C95E0BACFD87; l=AkREMnhnDJ3OKxhV7FBX8joMNMg2XWjH; ali_ab=106.39.48.34.1459412602224.3; __last_loginid__=%E7%82%8E%E9%BE%99%E4%BE%A0%E5%93%A5%E5%93%A5; __cn_logon__=true; last_mid=b2b-911619735pocrk; ali_apache_track="c_ms=1|c_mid=b2b-911619735pocrk|c_lid=%E7%82%8E%E9%BE%99%E4%BE%A0%E5%93%A5%E5%93%A5"; _cn_slid_=0f6eeJNEJK; ad_prefer="2016/04/13 11:07:15"; h_keys="%u624b%u673a%u4fdd%u62a4%u819c#%u8fde%u8863%u88d9#%u5ba0%u7269%u8863%u670d"; alisw=swIs1200%3D1%7C; __cn_logon_id__=%E7%82%8E%E9%BE%99%E4%BE%A0%E5%93%A5%E5%93%A5; JSESSIONID=8L78HCBZ1-9WVV3YAFC43Nl3Eq77-pj9aDiP-po; _tmp_ck_0="AhAPwLGenDuHUS1FlsrQoHCyXiiExdP08RIFhzO%2FGZGOnHekCfjRxkRR6%2FrZ6SUdpkGXZSfrS9zTEVNe6mokVurN4qv9mRA%2BACj5tjhQa612%2BdKEv4nP04ZCoyYorORKF%2FE3rKAWyKy0mS8oTbWVn%2FbQEL8YrQYfDRxHLvUs5Jw%2BInaZIDpvyaVaTMAk8MDysLVNQ6VK3HY1cnKN5P6JakymS10OnJRAIM2IXYZBUm8eFT9JWZebIn7xCVtg9pDcbp8bgwaFNBVJGaCM5wV6zV6XwVHYJZFfzHxnY5hRr38L0lCy7kchozuya2iPfFBkoAbi2VoGOX%2FeNSVEjkc7MQ%3D%3D"', 'Connection': 'keep-alive', 'Cache-Control': 'max-age=0'}
+        content = fetchContent(url, headers=headers)
         mList = parsePage(content)
         total_products.extend(mList)
         url = parseNextPageUrl(content)
@@ -206,16 +221,12 @@ def set_categories(products, category):
         p['category'] = category
         
 def main_method_p(category, start_url):
-    total_products = main(start_url, 14)
-    #set_categories(total_products, category)
+    total_products = main(start_url, 5)
+    set_categories(total_products, category)
     persistance(total_products, category)
     print "WELL DOME"
 
 if __name__ == '__main__':
-    #category = sys.argv[1]
-    #start_url = sys.argv[2]
-    start_url = "https://ye.1688.com/chanpin/1046695-6970686f6e65b2caccf9.htm?spm=a360i.cyd0017.0.0.tVSI6s&homeType=2"
-    #start_url="https://ye.1688.com/chanpin/-d4b0d2d5b9e0b8c8.htm?spm=a360i.cyd0017.0.0.XQ4lUU&homeType=1&analy=n&newProduct=1&sortType=MLR_PAY_COUNT&sortOrder=DESC#filt"
-    #start_url = "https://ye.1688.com/chanpin/-b3e8ceefd2c2b7fe.htm?spm=a360i.cyd0017.0.0.zk3ee8&homeType=1&analy=n&newProduct=1&sortType=MLR_PAY_COUNT&sortOrder=DESC#filt"
-    #start_url = "http://ye.1688.com/chanpin/-b4b0c1b1.htm?spm=a360i.cyd0017.0.0.Wl5YRp&homeType=1&analy=n&sortType=MLR_PAY_COUNT&sortOrder=DESC#filt"
-    main_method_p(u"iphone彩膜", start_url)
+    category = u'手机保护膜'
+    start_url = 'https://s.1688.com/selloffer/-CAD6BBFAB1A3BBA4C4A4-1033986.html?spm=a262l.22849.1998916260.9.816HeX'
+    main_method_p(category, start_url)

@@ -3,3 +3,9 @@ output/
 logs/
 
 *.pyc
+
+datas/
+
+data/
+
+*.xls
