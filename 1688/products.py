@@ -40,7 +40,7 @@ def fetchContent(url, saveFile=False):
     sleep();
     h = httplib2.Http()
     response, content = h.request(url)
-    print response
+    #print response
     content = unicode(content, "GBK")
     if saveFile:
         filename = "C:/users/chenweiqiang/desktop/" + str(uuid.uuid4()) + '.html'
@@ -68,13 +68,13 @@ def parsePage(content):
             p['product_url'] = url
         else:    
             p['product_url'] = "http:" + nodeQ('dt.img-vertical > a').attr('href')
-        print p['product_url']
+        #print p['product_url']
         p['sku_id'] = re.findall('/(\d+)\.htm', p['product_url'])[0]
-        print p['sku_id']
+        #print p['sku_id']
         p['city'] = nodeQ('dd.origin > a').text()
         p['store_name'] =  nodeQ('dd.company').text()
         p['store_url'] = "http:" + nodeQ('dd.company > a').eq(-1).attr('href')
-        print p['store_url']
+        #print p['store_url']
         p['monthly_sales']= nodeQ('dd.data > span.sold-out > em.num').text();
         #在产品列表页面增加一个字段
         p['tags'] = nodeQ("dd.signage > span").text()
@@ -89,7 +89,7 @@ def parseProductPage(product, need_img_urls=False):
        delivery reviews star total_sales
     """
     if product['product_url']:
-       content = fetchContent(product['product_url'])
+       content = fetchContent(product['product_url'], False)
        doc=PyQuery(content)
        #product['delivery'] = doc("div.cost-entries-type > p > em.value").text() 运费JS动态 解决不了
        product['reviews'] = doc('p.satisfaction-number > a > em.value').text()
@@ -110,6 +110,13 @@ def parseProductPage(product, need_img_urls=False):
        product['MOQ'] = extractNum(doc('tr.amount > td.ladder-1-1 > span.value').text().replace(u"≥", ""))
        if not product['MOQ'] or product['MOQ'] == 0:
            product['MOQ'] = extractNum(PyQuery(doc('tr.amount').remove('td.amount-title').children('td').eq(0))('span.value').text())
+       if product['MOQ'] == 1:
+           #print product['product_url']
+           product['sku_size'] = PyQuery(doc('div.unit-detail-spec-operator').eq(0))('span.text').text()
+           product['sku_color'] = PyQuery(doc('table.table-sku > tr').eq(0))('td.name').text()
+           product['sku_price'] = PyQuery(doc('table.table-sku > tr').eq(0))('td.price').text()
+           product['sku_amount'] = PyQuery(doc('table.table-sku > tr').eq(0))('td.count > span > em.value').text()
+           print product['sku_id'], '\t', product['sku_size'], "\t", product['sku_color'], "\t", product['sku_price'], "\t", product['sku_amount']
     return product
 
 store_info = {}
@@ -141,7 +148,7 @@ def parseStorePage(product):
        product['mobile'], product['telephone'], product['store_address'] = '', '', ''
        for node in doc('div.contcat-desc > dl'):
            nodeQ = PyQuery(node)
-           print nodeQ.children('dt').text()
+           #print nodeQ.children('dt').text()
            if nodeQ.children('dt').text().strip() == u'电      话：':
                product['telephone'] = nodeQ.children('dd').text()
                store_info[contact_url]['telephone'] = product['telephone']
