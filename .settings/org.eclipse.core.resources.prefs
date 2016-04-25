@@ -11,6 +11,7 @@ encoding/auto_crawl_server.py=utf-8
 encoding/batch_crawl_of_key_words.py=utf-8
 encoding/bestwigoutlet.py=utf-8
 encoding/crawl_baokuanyi.py=utf-8
+encoding/crawl_categoryTree.py=utf-8
 encoding/crawl_vvic.py=utf-8
 encoding/crawler2.py=utf-8
 encoding/rosewholesale.py=utf-8

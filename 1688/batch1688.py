@@ -47,9 +47,11 @@ def manual_crawl():
 'https://ye.1688.com/qiye/-b9d2d6d3.htm?spm=a360i.cyd0018.0.0.4cVHzO&homeType=1&sortType=SALE_QUANTITY#filt', \
 'https://ye.1688.com/qiye/-b0dabcfe.htm?spm=a360i.cyd0018.0.0.Nqo5Wd&homeType=1&sortType=SALE_QUANTITY#filt']
 
+    category_list = [u'钳子', u'螺丝刀', u'扳手']
+    merchanturl_list = ['https://ye.1688.com/qiye/-c7afd7d3.htm?spm=a360i.cyd0018.0.0.LqEEAD&homeType=1&sortType=SALE_QUANTITY&bizType=2#filt',\
+                        'https://ye.1688.com/qiye/-c2ddcbbfb5b6.htm?spm=a360i.cyd0018.0.0.Mqqfcm&homeType=1&sortType=SALE_QUANTITY&bizType=2#filt',\
+                        'https://ye.1688.com/qiye/-b0e2cad6.htm?spm=a360i.cyd0018.0.0.8l3w5x&homeType=1&sortType=SALE_QUANTITY&bizType=2#filt']
     for index, category in enumerate(category_list):
-        if index != 3:
-            continue
         crawl_products_and_categories(category, producturl_list[index], merchanturl_list[index])
         
 def crawl_products_and_categories(category, product_url, merchant_url):

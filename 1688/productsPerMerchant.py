@@ -23,7 +23,8 @@ def get_categories(url):
         doc = PyQuery(content)
         categoryNodeList = doc("div.wp-category-nav-unit > ul > li > a")
         for node in categoryNodeList:
-            url, num, name= PyQuery(node).attr('href'), PyQuery(node)('span').text(), PyQuery(node).remove('span').text()
+            url, num, name= process_url(PyQuery(node).attr('href')), PyQuery(node)('span').text(), PyQuery(node).remove('span').text()
+            url = url.replace("showType=catalog", "showType=window")
             cate_list.append([url, name, num])
     return cate_list
 
@@ -52,6 +53,7 @@ def crawlProductsByCategory(cate_list, ws, merchant_info):
                 ws.write(row, 11, product[3])
                 ws.write(row, 12, product[4])
                 ws.write(row, 13, str(product[5]))
+                ws.write(row, 14, str(product[-1]))
                 row += 1
         except Exception, e:
             print e
@@ -74,7 +76,16 @@ def crawlProducts(start_url, limit=999):
         for num, node in enumerate(nodeList):
             nodeQ = PyQuery(node)
             name = nodeQ('div.title > a').attr('title')
-            product_url = nodeQ('div.title > a').attr('href')
+            product_url = process_url(nodeQ('div.title > a').attr('href'))
+            try:
+                MOQ = 0
+                p_content = fetchPageWithUrl(product_url)
+                p_doc = PyQuery(p_content)
+                MOQ = extractNum(p_doc('tr.amount > td.ladder-1-1 > span.value').text())
+                if not MOQ or MOQ == 0:
+                    MOQ = extractNum(PyQuery(p_doc('tr.amount').remove('td.amount-title').children('td').eq(0))('span.value').text())
+            except:
+                """do nothing"""
             img_url = "http:" + nodeQ('div.image > a > img').attr('data-lazy-load-src')
             price = nodeQ('div.price').text()
             if nodeQ('div.attributes > span'):
@@ -87,7 +98,7 @@ def crawlProducts(start_url, limit=999):
                 tags = ''
             sold = extractNum(nodeQ('div.booked-count').text())
             total_count += 1
-            products.append([name, product_url, img_url, price, tags, sold, page_count, num+1, total_count])
+            products.append([name, product_url, img_url, price, tags, sold, page_count, num+1, total_count, MOQ])
         next_url = parse_next_url(doc)
         if not next_url:
             break
@@ -115,7 +126,8 @@ def parse_next_url(contentQ):
 def get_categories_url(home_url):
     content = fetchPageWithUrl(home_url)
     doc = PyQuery(content)
-    return doc('a.show-category').attr('href')
+    url = doc('a.show-category').attr('href')
+    return process_url(url)
 
 def init_ws(ws):
     ws.write(0, 0, 'merchant_category')
@@ -132,13 +144,14 @@ def init_ws(ws):
     ws.write(0, 11, 'price')
     ws.write(0, 12, 'product_tags')
     ws.write(0, 13, 'product_sold')
+    ws.write(0, 14, 'MOQ')
 
 if __name__ == '__main__':
-    rb = xlrd.open_workbook('a.xls')
+    rb = xlrd.open_workbook(u'钳子_2016-04-22_suppliers-result.xls')
     rs = rb.sheets()[0]
     wb = xlwt.Workbook(encoding='utf-8')
     #category, name, url, main_products, contact, weekly_sales
-    for row in range(1, 21):
+    for row in range(1, 11):
         try:
             merchant_info = [rs.cell(row, 0).value, rs.cell(row, 2).value, rs.cell(row, 3).value, rs.cell(row, 4).value, rs.cell(row, 15).value, rs.cell(row, 8).value]
             print 'begin to process', str(row) + 'rd', 'merchant... [%s]' %merchant_info[2]
@@ -152,5 +165,5 @@ if __name__ == '__main__':
         except Exception, e:
             print e
             print (row + 1), "of 20 merchants failed!"
-    wb.save('b.xls')
+    wb.save('3.xls')
     print 'well done.'
