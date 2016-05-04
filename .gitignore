@@ -1,11 +1,15 @@
+datas/
+
+data/
+
 output/
 
 logs/
 
-*.pyc
-
-1688/
-
-datas/
+*.xls
 
 *.csv
+
+*.rar
+
+*.pyc

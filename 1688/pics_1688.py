@@ -7,6 +7,8 @@ import re
 import urllib
 import httplib2
 import json
+import random
+import time
 from pyquery import PyQuery
 from utils import fetchPageWithUrl
 
@@ -38,6 +40,8 @@ def get_img_urls(content):
     needDescImg = True
     if needDescImg:
         link_url = doc('div#desc-lazyload-container').attr('data-tfs-url')
+        if not link_url:
+           return url_list
         desc_content = fetchPageWithUrl(link_url)
         #懒惰匹配模式
         imgNodes = re.findall('<img[^<>]*>.*?', desc_content)
@@ -58,10 +62,20 @@ def get_img_urls(content):
 
 def download(img_url, sku_id, index):
     path = './output/' + str(sku_id) + '_' + str(index+1) + '.jpg'
+#     time.sleep(random.uniform(1,2))
+    img_url = fix_url(img_url)
     conn = urllib.urlopen(img_url)  
     f = open(path,'wb')  
     f.write(conn.read())  
     f.close()
+    
+def fix_url(url):
+    if url.startswith("//"):
+        return "http:" + url
+    elif url.startswith("://"):
+        return "http" + url
+    else:
+        return url
     
 if __name__ == '__main__':
     wb = xlrd.open_workbook("1688products-result.xls")

@@ -23,7 +23,8 @@ def get_categories(url):
         doc = PyQuery(content)
         categoryNodeList = doc("div.wp-category-nav-unit > ul > li > a")
         for node in categoryNodeList:
-            url, num, name= PyQuery(node).attr('href'), PyQuery(node)('span').text(), PyQuery(node).remove('span').text()
+            url, num, name= process_url(PyQuery(node).attr('href')), PyQuery(node)('span').text(), PyQuery(node).remove('span').text()
+            url = url.replace("showType=catalog", "showType=window")
             cate_list.append([url, name, num])
     return cate_list
 
@@ -52,15 +53,17 @@ def crawlProductsByCategory(cate_list, ws, merchant_info):
                 ws.write(row, 11, product[3])
                 ws.write(row, 12, product[4])
                 ws.write(row, 13, str(product[5]))
+                ws.write(row, 14, str(product[-1]))
                 row += 1
         except Exception, e:
             print e
             print 'category', (index + 1), "of", len(cate_list), "failed!"
 
-def crawlProducts(start_url):
+def crawlProducts(start_url, limit=999):
     current_url = start_url
     products = []
     page_count = 1
+    total_count = 0 #全部商品数目
     while True:
         content = fetchPageWithUrl(current_url)
         print 'fetch page %s' %page_count
@@ -70,10 +73,19 @@ def crawlProducts(start_url):
         nodeList = PyQuery(doc('div[data-tracelog-exp="wp_widget_offerhand_main_disp"]').eq(0))('ul.offer-list-row > li')#PyQuery(doc('div.common-column-150').eq(0))('ul.offer-list-row > li') #common-column-220
         if len(nodeList) < 4:
            print len(nodeList)
-        for node in nodeList:
+        for num, node in enumerate(nodeList):
             nodeQ = PyQuery(node)
             name = nodeQ('div.title > a').attr('title')
-            product_url = nodeQ('div.title > a').attr('href')
+            product_url = process_url(nodeQ('div.title > a').attr('href'))
+            try:
+                MOQ = 0
+                p_content = fetchPageWithUrl(product_url)
+                p_doc = PyQuery(p_content)
+                MOQ = extractNum(p_doc('tr.amount > td.ladder-1-1 > span.value').text())
+                if not MOQ or MOQ == 0:
+                    MOQ = extractNum(PyQuery(p_doc('tr.amount').remove('td.amount-title').children('td').eq(0))('span.value').text())
+            except:
+                """do nothing"""
             img_url = "http:" + nodeQ('div.image > a > img').attr('data-lazy-load-src')
             price = nodeQ('div.price').text()
             if nodeQ('div.attributes > span'):
@@ -85,13 +97,25 @@ def crawlProducts(start_url):
             else:
                 tags = ''
             sold = extractNum(nodeQ('div.booked-count').text())
-            products.append([name, product_url, img_url, price, tags, sold])
+            total_count += 1
+            products.append([name, product_url, img_url, price, tags, sold, page_count, num+1, total_count, MOQ])
         next_url = parse_next_url(doc)
         if not next_url:
             break
-        current_url = next_url
+        current_url = process_url(next_url)
         page_count += 1
+        if page_count > limit:
+            break
     return products
+
+def process_url(url):
+    if url.find("http") == 0:
+        return url
+    elif url.find("://") == 0:
+        return "http" + url
+    elif url.find("//") == 0:
+        return "http:" + url
+    return url
 
 def parse_next_url(contentQ):
     if contentQ('li.pagination > a.next-disabled'):
@@ -102,7 +126,8 @@ def parse_next_url(contentQ):
 def get_categories_url(home_url):
     content = fetchPageWithUrl(home_url)
     doc = PyQuery(content)
-    return doc('a.show-category').attr('href')
+    url = doc('a.show-category').attr('href')
+    return process_url(url)
 
 def init_ws(ws):
     ws.write(0, 0, 'merchant_category')
@@ -119,13 +144,14 @@ def init_ws(ws):
     ws.write(0, 11, 'price')
     ws.write(0, 12, 'product_tags')
     ws.write(0, 13, 'product_sold')
+    ws.write(0, 14, 'MOQ')
 
 if __name__ == '__main__':
-    rb = xlrd.open_workbook('a.xls')
+    rb = xlrd.open_workbook(u'钳子_2016-04-22_suppliers-result.xls')
     rs = rb.sheets()[0]
     wb = xlwt.Workbook(encoding='utf-8')
     #category, name, url, main_products, contact, weekly_sales
-    for row in range(1, 21):
+    for row in range(1, 11):
         try:
             merchant_info = [rs.cell(row, 0).value, rs.cell(row, 2).value, rs.cell(row, 3).value, rs.cell(row, 4).value, rs.cell(row, 15).value, rs.cell(row, 8).value]
             print 'begin to process', str(row) + 'rd', 'merchant... [%s]' %merchant_info[2]
@@ -139,5 +165,5 @@ if __name__ == '__main__':
         except Exception, e:
             print e
             print (row + 1), "of 20 merchants failed!"
-    wb.save('b.xls')
+    wb.save('3.xls')
     print 'well done.'

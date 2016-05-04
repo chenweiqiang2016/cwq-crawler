@@ -7,13 +7,15 @@ import uuid
 import os
 import re
 import json
+import sys
+import datetime
 from pyquery import PyQuery
 from utils import extractNum
 
 class Merchant:
     def __init__(self):
         self.attrs = {}
-        self.attrs['category'] = "浮潜用品";
+        #self.attrs['category'] = "水龙头";
         
     def __getitem__(self, key):
         if self.attrs.has_key(key):
@@ -114,12 +116,12 @@ def parseSupplierContactPage(m):
     else:
         m['satisfication'] = ''
 
-def persistance(objList):
+def persistance(objList, category):
     fields = ['category', 'city', 'name', 'url', 'main_products', 'address', 'satisfaction_rate', 'retention_rates', 'weekly_sales',\
               'years', 'isAlipay', 'isTrust', 'trade_medal', 'supply-grade', 'biz-type','contact', 'satisfication',\
               'products_count', 'active_products_count']
     first_line = '\t'.join(fields) + '\n'
-    fw = open(os.path.basename(__file__).split('.')[0] + "-result.csv", 'w')
+    fw = open(category + '_' + str(datetime.date.today()) + '_' + os.path.basename(__file__).split('.')[0] + "-result.csv", 'w')
     fw.write(first_line)
     for obj in objList:
         datas = []
@@ -139,7 +141,7 @@ def parseNextPageUrl(content):
     if doc('div.page-bottom > a.page-next').attr('href'):
         return "http:" + doc('div.page-bottom > a.page-next').attr('href')
 
-def main(start_url):
+def main(category, start_url):
     """完成各个方法的调度"""
     url = start_url
     LIMIT = 5 #抓5个页面
@@ -153,14 +155,25 @@ def main(start_url):
         count += 1
         if not url:
             break;
-    persistance(total_merchants)
+    set_categories(total_merchants, category)
+    persistance(total_merchants, category)
     print "WELL DOME"
+    
+def set_categories(merchants, category):
+    for m in merchants:
+        m['category'] = category
 
-if __name__ == '__main__':
-    start_url = 'https://ye.1688.com/qiye/-b8a1c7b1d3c3c6b7.htm?spm=a360i.cyd0018.0.0.BIxXz4&homeType=1&sortType=SALE_QUANTITY#filt'
+def main_method_s(category, start_url):
+    main(category, start_url)
+
+if __name__ == '__main__': 
+    #通过其他脚本来调
+    category = sys.argv[1]
+    start_url = sys.argv[2]
+    #start_url = 'https://ye.1688.com/qiye/-d4b0d2d5b9a4bedf.htm?spm=a360i.cyd0018.0.0.MLvCMk&homeType=1&sortType=SALE_QUANTITY#filt'
     #start_url="https://ye.1688.com/qiye/-bbfac6f7c8cbcde6bedf.htm?spm=a360i.cyd0018.0.0.plX7kd&homeType=1&sortType=SALE_QUANTITY#filt"
     #start_url="https://ye.1688.com/qiye/-b3f8b7bfd0a1b9a4bedf.htm?spm=a360i.cyd0018.0.0.RMoqZC&homeType=1&sortType=SALE_QUANTITY#filt"
     #start_url = "http://ye.1688.com/qiye/-b4b0c1b1.htm?spm=a360i.cyd0018.0.0.30HwlG&homeType=1&sortType=SALE_QUANTITY#filt"
     #start_url = "https://ye.1688.com/qiye/-b3e8ceefd2c2b7fe.htm?spm=a360i.cyd0018.0.0.Tm8FDX&homeType=1&sortType=SALE_QUANTITY#filt"
-    main(start_url)
+    
     
