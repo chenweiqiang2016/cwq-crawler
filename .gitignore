@@ -3,3 +3,9 @@ output/
 logs/
 
 *.pyc
+
+1688/
+
+datas/
+
+*.csv
