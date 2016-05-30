@@ -8,6 +8,7 @@ encoding//1688/productsPerMerchant.py=utf-8
 encoding//1688/suppliers.py=utf-8
 encoding//1688/utils.py=utf-8
 encoding/auto_crawl_server.py=utf-8
+encoding/auto_off_shelf.py=utf-8
 encoding/batch_crawl_of_key_words.py=utf-8
 encoding/bestwigoutlet.py=utf-8
 encoding/crawl_baokuanyi.py=utf-8
